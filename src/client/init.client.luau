@@ -1,14 +1,19 @@
--- Client/ClientStore.lua
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local FusionApp = require(script.FusionApp)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local PlayerSessions = require(ReplicatedStorage.Shared.producers.PlayerSessions)
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local React = require(game.ReplicatedStorage.Packages.React)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+local e = React.createElement
+local ReactRoblox = require(game.ReplicatedStorage.Packages.ReactRoblox)
+local App = require(game.ReplicatedStorage.Shared.ReactComponents.App)
 
--- 1. Create the Receiver
 local receiver = Reflex.createBroadcastReceiver({
 	start = function()
-		Remotes.start:FireServer()
+		game.ReplicatedStorage.Shared.Events:WaitForChild("start"):FireServer()
 	end,
 })
 
@@ -17,21 +22,62 @@ Remotes.dispatch.OnClientEvent:Connect(function(actions)
 end)
 
 PlayerSessions:applyMiddleware(receiver.middleware)
+local controllerModules = game.ReplicatedStorage.Shared.Controllers:GetChildren()
 
-local function selectCash(state: PlayerSessions.PlayersState)
-	local session = state.players[game.Players.LocalPlayer]
-	if not session then
-		return
+print([[controllers initialization]])
+for i, d in controllerModules do
+	if d:IsA("ModuleScript") then
+		-- print("requiring", d.Name)
+		shared[d.Name] = require(d)
 	end
-	return session.Data.Cash
+	-- print(("required %s / %s"):format(i, #controllerModules))
 end
 
--- PlayerSessions:subscribe(selectCash, function(state, prevState)
--- 	warn("CASH:", state)
--- end)
+local initializecontrollers = {}
+for i, s in shared do
+	if s.initialize and type(s.initialize) == "function" then
+		table.insert(initializecontrollers, { name = i, fn = s.initialize })
+	end
+end
+for i, s in initializecontrollers do
+	s.fn()
+end
 
-FusionApp({
-	Parent = game.Players.LocalPlayer.PlayerGui:WaitForChild("ScreenGui"),
-})
+local startcontrollers = {}
+for i, s in shared do
+	if s.start and type(s.start) == "function" then
+		table.insert(startcontrollers, { name = i, fn = s.start })
+	end
+end
+for i, s in startcontrollers do
+	s.fn()
+end
 
--- FusionApp()
+for i, d: Instance in game.ReplicatedStorage.Shared.ReactComponents:GetDescendants() do
+	pcall(function()
+		require(d)
+	end)
+end
+
+local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+local Events = game.ReplicatedStorage.Shared:WaitForChild("Events")
+local ScreenGui, root, jumpconn
+local bodyparts = {}
+
+local function loadApp(character: Model)
+	if ScreenGui then
+		ScreenGui:Destroy()
+	end
+	if root then
+		root:unmount()
+	end
+
+	ScreenGui = Instance.new("ScreenGui", game.Players.LocalPlayer.PlayerGui)
+	ScreenGui.ResetOnSpawn = true
+	ScreenGui.Name = "ReactRoot"
+	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	root = ReactRoblox.createRoot(ScreenGui)
+	-- root:render(e(App))
+	root:render(e(App))
+end
+loadApp()

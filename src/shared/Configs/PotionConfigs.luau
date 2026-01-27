@@ -11,6 +11,12 @@ export type PotionInstance = {
 	VariationId: string,
 	Size: number,
 }
+export type CauldronInstance = {
+	PotionId: string?,
+	StartTime: number?,
+	VariationId: string?,
+	Size: number?,
+}
 
 -- Initialize Tables and Lookup
 

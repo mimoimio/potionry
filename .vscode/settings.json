@@ -2,5 +2,6 @@
   "files.exclude": {
     "src/_framework/": true,
     ".vscode": true
-  }
+  },
+  "r.lsp.promptToInstall": false
 }

@@ -12,14 +12,30 @@ local Signal = require(game.ReplicatedStorage.Packages.Signal)
 type Profile = ProfileStoreModule.Profile<PlayerData> -- Typed Profile object
 
 local PROFILE_TEMPLATE: PlayerSessions.Data = {
-	Cash = 0,
+	Cash = 50,
 	Cauldrons = {},
 	Potions = {},
 	PotionSlots = {},
+	ThrownPotions = {},
+	PotionBook = {},
+	Ingredients = {
+		daybloom = 0,
+		blinkroot = 0,
+		luckyclover = 0,
+		moonglow = 0,
+		glowshroom = 0,
+		waterleaf = 0,
+		fireblossom = 0,
+	},
+	Multipliers = {}, -- { [multiplierId]: { DisplayName, Value (bonus %), Expire } }
+	Collectors = {},
+	ShopCycles = {},
+	TutorialFinished = false,
 }
+
 local function selectPlayerData(player: Player)
 	return function(state)
-		return state.players[player].Data
+		return state.players[player] and state.players[player].Data
 	end
 end
 
@@ -35,6 +51,7 @@ local Profiles: { [Player]: Profile } = {}
 -- Service module to return
 local PlayerDataService = {}
 PlayerDataService.PlayerSessions = {}
+PlayerDataService.PROFILE_TEMPLATE = PROFILE_TEMPLATE
 
 -- create bindable events
 local ProfileCreated = Signal.new()
@@ -49,6 +66,7 @@ local function OnPlayerAdded(player: Player)
 
 	-- Load and session-lock the profile asynchronously
 	local profile: Profile? = PlayerProfileStore:StartSessionAsync(profileKey)
+	print("profile", profileKey, profile)
 	if profile then
 		-- Add GDPR compliance UserIds (Recommended)
 		profile:AddUserId(player.UserId)
@@ -103,28 +121,11 @@ local function OnPlayerAdded(player: Player)
 			cash.Value = Mionum.new(money):toString()
 		end)
 
-		local PlotService = require(game.ServerScriptService.Server.Services.PlotService)
-		local plot = PlotService.GetPlot(player)
-		PlayerSessions.addPlayer(player, profile.Data, plot)
-		local selectData = selectPlayerData(player)
-
-		local unsubscribe = PlayerSessions:subscribe(selectData, function(state, prevData)
-			profile.Data = state
-		end)
-
-		profile.OnSessionEnd:Connect(function()
-			unsubscribe()
-			PlotService.ReturnPlot(player)
-			Profiles[player] = nil
-			PlayerSessions.removePlayer(player)
-			player:Kick("Your data session has ended. Please rejoin.")
-			ProfileSessionEnded:Fire()
-		end)
 		ProfileCreated:Fire()
 	else
 		-- The profile couldn't be loaded
 		warn(`Critical error: Failed to load profile for {player.Name} ({player.UserId}). Kicking.`)
-		player:Kick("Failed to load your data. Please try rejoining the server.")
+		-- player:Kick("Failed to load your data. Please try rejoining the server.")
 	end
 end
 
@@ -134,7 +135,7 @@ local function OnPlayerRemoving(player: Player)
 	if profile then
 		-- End the session - this saves the data and unlocks the session
 		profile:EndSession()
-		warn(`Ending session profile for {player.Name} ({player.UserId}) on leave.`)
+		print(`Ending session profile for {player.Name} ({player.UserId}) on leave.`)
 	end
 end
 
@@ -152,7 +153,7 @@ local function OnShutdown()
 				threads,
 				task.spawn(function()
 					profile:EndSession() -- Yields until saved and released
-					warn(`Profile session for {player.Name} ended during shutdown.`)
+					print(`Profile session for {player.Name} ended during shutdown.`)
 				end)
 			)
 		end
@@ -182,15 +183,17 @@ local broadcaster = Reflex.createBroadcaster({
 	},
 	dispatch = function(player, actions)
 		local relevantActions = {}
-		for _, action in actions do
-			-- ARGUMENT 1 is usually the player the action affects
-			local targetPlayer = action.arguments[1]
 
-			-- CHECK: Only send the action if it belongs to this player
-			if targetPlayer == player then
+		for _, action in actions do
+			local targetPlayer = action.arguments[1]
+			-- Logic:
+			-- 1. If targetPlayer matches the current player (Private)
+			-- 2. OR if targetPlayer is nil (Global - send to everyone)
+			if targetPlayer == player or targetPlayer == nil then
 				table.insert(relevantActions, action)
 			end
 		end
+
 		if #relevantActions > 0 then
 			Remotes.dispatch:FireClient(player, relevantActions)
 		end
@@ -201,6 +204,60 @@ PlayerSessions:applyMiddleware(broadcaster.middleware)
 
 Remotes.start.OnServerEvent:Connect(function(player)
 	broadcaster:start(player)
+	local profile
+	local timeout = 10 -- seconds
+	local elapsed = 0
+	repeat
+		profile = Profiles[player]
+		task.wait(0.1)
+		elapsed += 0.1
+		if elapsed >= timeout then
+			player:Kick("Failed to load your data. Please try rejoining.")
+			return
+		end
+	until profile
+	local PlotService = require(game.ServerScriptService.Server.Services.PlotService)
+	local plot = PlotService.GetPlot(player)
+	local character = player.Character or player.CharacterAdded:Wait()
+	PlayerSessions.addPlayer(player, profile.Data, plot)
+	local selectData = selectPlayerData(player)
+	local unsubscribe = PlayerSessions:subscribe(selectData, function(state, prevData)
+		profile.Data = state
+	end)
+
+	task.spawn(function()
+		PlayerSessions.setCharacter(player, character)
+	end)
+
+	player.CharacterAdded:Connect(function(character)
+		PlayerSessions.setCharacter(player, character)
+	end)
+
+	profile.OnSessionEnd:Connect(function()
+		unsubscribe()
+		PlotService.ReturnPlot(player)
+		Profiles[player] = nil
+		PlayerSessions.removePlayer(player)
+		player:Kick("Your data session has ended. Please rejoin.")
+		ProfileSessionEnded:Fire()
+	end)
+end)
+
+-- Handle tutorial completion
+local FinishTutorial = Instance.new("RemoteEvent")
+FinishTutorial.Name = "FinishTutorial"
+FinishTutorial.Parent = ReplicatedStorage.Shared.Events
+
+FinishTutorial.OnServerEvent:Connect(function(player)
+	local profile = Profiles[player]
+	if not profile then
+		-- warn("[PlayerDataService] No profile found for player:", player.Name)
+		return
+	end
+
+	-- Mark tutorial as finished
+	PlayerSessions.setTutorialFinished(player, true)
+	print(string.format("[PlayerDataService] %s completed the tutorial!", player.Name))
 end)
 
 return PlayerDataService

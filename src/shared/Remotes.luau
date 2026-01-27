@@ -1,14 +1,15 @@
 -- ReplicatedStorage/Shared/Remotes.lua
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
+local RunService = game:GetService("RunService")
+local isserver = RunService:IsServer()
 local function Start()
-	local remote = ReplicatedStorage.Shared.Events:FindFirstChild("start") or Instance.new("RemoteEvent")
+	local remote = isserver and Instance.new("RemoteEvent") or ReplicatedStorage.Shared.Events:WaitForChild("start") 
 	remote.Name = "start"
 	remote.Parent = ReplicatedStorage.Shared.Events
 	return remote
 end
 local function Dispatch()
-	local remote = ReplicatedStorage.Shared.Events:FindFirstChild("dispatch") or Instance.new("RemoteEvent")
+	local remote = isserver and Instance.new("RemoteEvent") or ReplicatedStorage.Shared.Events:WaitForChild("dispatch") 
 	remote.Name = "dispatch"
 	remote.Parent = ReplicatedStorage.Shared.Events
 	return remote
