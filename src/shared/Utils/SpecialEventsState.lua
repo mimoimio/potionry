@@ -5,12 +5,12 @@ local SpecialEventsState = {}
 
 -- Event display names
 SpecialEventsState.EVENT_NAMES = {
-	copper = "🔶 Copper Event Active!",
-	silver = "⚪ Silver Event Active!",
-	gold = "🟡 Gold Event Active!",
-	diamond = "💎 Diamond Event Active!",
-	strange = "🔮 Strange Event Active!",
-	starlight = "⭐ Starlight Event Active!",
+	copper = "Copper Event!",
+	silver = "Silver Event!",
+	gold = "Gold Event!",
+	diamond = "Diamond Event!",
+	strange = "Strange Event!",
+	starlight = "Starlight Event!",
 }
 
 -- Event colors

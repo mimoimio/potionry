@@ -52,15 +52,24 @@ local function createPotionModel(potion)
 		local vfxFolder = game.ReplicatedStorage.Shared:FindFirstChild("VFX")
 		local vconfig = VariationsConfig[potion.VariationId]
 		local cf, size = model:GetBoundingBox()
-		model.Fill.Color = Color3.new(
-			(model.Fill.Color.R + vconfig.ColorPrimary.R) / 2,
-			(model.Fill.Color.G + vconfig.ColorPrimary.G) / 2,
-			(model.Fill.Color.B + vconfig.ColorPrimary.B) / 2
-		)
-		model.Bottle.Color = vconfig.ColorPrimary
-		model.Bottle.Transparency = 0.3
-		model.Bottle.Reflectance = 0.6
-		model.Bottle.UsePartColor = true
+
+		-- Handle Fill part if it exists
+		if model:FindFirstChild("Fill") then
+			model.Fill.Color = Color3.new(
+				(model.Fill.Color.R + vconfig.ColorPrimary.R) / 2,
+				(model.Fill.Color.G + vconfig.ColorPrimary.G) / 2,
+				(model.Fill.Color.B + vconfig.ColorPrimary.B) / 2
+			)
+		end
+
+		-- Handle Bottle part if it exists
+		if model:FindFirstChild("Bottle") then
+			model.Bottle.Color = vconfig.ColorPrimary
+			model.Bottle.Transparency = 0.3
+			model.Bottle.Reflectance = 0.6
+			model.Bottle.UsePartColor = true
+		end
+
 		if vfxFolder then
 			local vfxPart = vfxFolder:FindFirstChild(potion.VariationId)
 			local vfxClone
@@ -84,8 +93,8 @@ local function createPotionModel(potion)
 			local iconAtt = vfxFolder.Parent.Icons:FindFirstChild(potion.VariationId)
 			if vfxClone and iconAtt then
 				local iconClone = iconAtt:Clone() :: Attachment
-				iconClone.CFrame = CFrame.new(0, size.Y, 0)
-				iconClone.Parent = vfxClone
+				iconClone.CFrame = CFrame.new(0, size.Y / 2 + 3, 0)
+				iconClone.Parent = model:FindFirstChildWhichIsA("BasePart", true)
 			end
 		end
 	end
@@ -100,7 +109,7 @@ local function PotionItem(props)
 	local config = PotionConfigs[potion and potion.PotionId]
 	local varcfg = VariationsConfig[VariationId] or VariationsConfig.none
 	local rate = math.floor(config.Rate * varcfg.Multiplier * (props.finalMultiplier or 1) * (potion.Size or 1))
-	local rateString = Mionum.new(rate):toString()
+	local rateString = Mionum.new(rate):toString() .. "/s"
 	useEffect(function()
 		-- Don't create tool if potion is placed
 		if props.Placed then
@@ -119,7 +128,7 @@ local function PotionItem(props)
 		tool:SetAttribute("RateString", rateString)
 		toolRef.current = tool
 		local c = tool.Activated:Connect(function()
-			-- game.ReplicatedStorage.Shared.Events.PotionClicked:FireClient(props.Player, props.Potion.UID)
+			game.ReplicatedStorage.Shared.Events.PotionClicked:FireClient(props.Player, props.Potion.UID)
 		end)
 		local Handle = Instance.new("Part")
 		Handle.Name = "Handle"
@@ -288,6 +297,7 @@ local function CauldronItem(props: {
 			prompt.ActionText = "Buy Caudldron"
 			prompt.RequiresLineOfSight = false
 			prompt.Triggered:Connect(buyCauldron)
+			prompt.Style = "Custom"
 			prompt.Parent = cauldronfolder.Base.Hitbox
 			promptRef.current = prompt
 		end
@@ -550,7 +560,7 @@ local function PotionSlot(props: {
 			end
 			slotPart.PlacePrompt.RequiresLineOfSight = false
 			(slotPart.PlacePrompt :: ProximityPrompt).Enabled = false
-			slotPart.PlacePrompt.Style = Enum.ProximityPromptStyle.Default
+			slotPart.PlacePrompt.Style = Enum.ProximityPromptStyle.Custom
 			-- Set action text based on slot state
 			if occupied then
 				(slotPart.PlacePrompt :: ProximityPrompt).ActionText = "Pick Up Potion"
@@ -644,6 +654,7 @@ local function PotionSlot(props: {
 				return
 			end
 			model = createPotionModel(potion)
+			model.Name = potion.UID
 			local ds = model:GetDescendants()
 			if ds then
 				for i, d in ds do
@@ -739,6 +750,7 @@ local function Rack(props)
 	useEffect(function()
 		return function()
 			if modelRef.current then
+				warn("YES modelRef.current, DESTROYING")
 				modelRef.current:Destroy()
 				modelRef.current = nil
 			else
@@ -911,7 +923,7 @@ local function TycoonApp(props)
 				setTycoons(function(prev)
 					local newTycoons = table.clone(prev or {})
 					newTycoons[player] = nil
-					return { unpack(prev), [player] = tycoon }
+					return newTycoons
 				end)
 			end
 		end)
@@ -979,5 +991,4 @@ end
 -- 	local price = distance - min
 -- 	t[i]:SetAttribute("Price", price ^ 4)
 -- end
-
 return TycoonView

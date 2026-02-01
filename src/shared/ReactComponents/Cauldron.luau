@@ -1,3 +1,4 @@
+local SoundService = game:GetService("SoundService")
 local PlayerSessions = require(game.ReplicatedStorage.Shared.producers.PlayerSessions)
 local React = require(game.ReplicatedStorage.Packages.React)
 local Mionum = require(game.ReplicatedStorage.Packages.Mionum)
@@ -14,7 +15,7 @@ local function CauldronItem(props)
 	local completionindicator = useRef(nil)
 	local ingredientModelsRef = useRef({})
 	local progressBarRef = useRef(nil)
-	local proximityprompt, setProximityPrompt = useState(nil)
+	local proximityprompt: ProximityPrompt, setProximityPrompt = useState(nil)
 	useEffect(function()
 		if phase == "none" or phase == "done" then
 			return
@@ -44,7 +45,7 @@ local function CauldronItem(props)
 			local cauldronModel = props.Plot.Cauldrons:WaitForChild(props.CauldronId):WaitForChild("Cauldron") :: Model
 			local pp = cauldronModel:WaitForChild("Hitbox").ProximityPrompt
 			setProximityPrompt(pp)
-			pp.Enabled = true
+			pp.Enabled = props.activePanel ~= "craft"
 			if props.Cauldron == "none" then
 				pp.ActionText = "Craft"
 				(pp :: ProximityPrompt).HoldDuration = 0
@@ -77,20 +78,8 @@ local function CauldronItem(props)
 				pp.ObjectText = "Completed!"
 				setPhase(function(prev)
 					if prev == "cooking" or prev == "cookinglong" then
-						-- local donesound: Sound = game.ReplicatedStorage.Shared.SFX:FindFirstChild("Done")
-						-- if donesound then
-						-- 	task.spawn(function()
-						-- 		local s = donesound:Clone()
-						-- 		s.Volume = 1
-						-- 		s.Parent = game.Players.LocalPlayer
-						-- 		if not s.IsLoaded then
-						-- 			s.Loaded:Wait()
-						-- 		end
-						-- 		s:Play()
-						-- 		s.Ended:Wait()
-						-- 		s:Destroy()
-						-- 	end)
-						-- end
+						local SoundController = require(game.ReplicatedStorage.Shared.Controllers.SoundController)
+						SoundController.Sound("Done")
 					end
 					return "done"
 				end)
@@ -283,6 +272,17 @@ local function CauldronItem(props)
 			ingredientModelsRef.current = {}
 		end
 	end, {})
+
+	useEffect(function()
+		if not proximityprompt then
+			return
+		end
+		if props.activePanel == "craft" then
+			proximityprompt.Enabled = false
+		else
+			proximityprompt.Enabled = true
+		end
+	end, { props.activePanel })
 	return e("Attachment")
 end
 
@@ -304,6 +304,10 @@ local function Cauldrons(props)
 	if not Plot then
 		return
 	end
+
+	if not PlayerData then
+		return
+	end
 	for i, folder: Folder in Plot.Cauldrons:GetChildren() do
 		local CauldronId = folder.Name
 		local cauldron = PlayerData.Cauldrons[CauldronId]
@@ -320,6 +324,7 @@ local function Cauldrons(props)
 			VariationId = cauldron ~= "none" and cauldron.VariationId,
 			UID = cauldron ~= "none" and cauldron.UID,
 			Plot = Plot,
+			activePanel = props.activePanel,
 			setCurrentCauldron = props.setCurrentCauldron,
 		})
 	end

@@ -3,9 +3,14 @@ local ShopState = {}
 -- CONFIG
 local SMALL_CYCLE_DURATION = 5 * 60 -- 5 mins
 local CYCLES_PER_BIG_CYCLE = 6 -- 6 rotations
+-- local SMALL_CYCLE_DURATION = 2
+-- local CYCLES_PER_BIG_CYCLE = 5
+
+local BIG_CYCLE_DURATION = CYCLES_PER_BIG_CYCLE * SMALL_CYCLE_DURATION
 
 ShopState.SMALL_CYCLE_DURATION = SMALL_CYCLE_DURATION
 ShopState.CYCLES_PER_BIG_CYCLE = CYCLES_PER_BIG_CYCLE
+ShopState.BIG_CYCLE_DURATION = BIG_CYCLE_DURATION
 
 function ShopState.getCurrentState()
 	local currentTime = workspace:GetServerTimeNow() -- UTC Timestamp

@@ -199,10 +199,10 @@ local function useRobloxInventory(totalSlots)
 			end
 		end
 
-		local unsubscribe = PlayerSessions:subscribe(function(state:PlayerSessions.PlayersState)
+		local unsubscribe = PlayerSessions:subscribe(function(state: PlayerSessions.PlayersState)
 			local session = state.players[player]
 			return session and session.Data.Collectors
-		end,function(collectors)
+		end, function(collectors)
 			updateSlotProximityPrompts()
 		end)
 

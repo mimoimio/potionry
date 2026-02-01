@@ -1,5 +1,7 @@
 local React = require(game.ReplicatedStorage.Packages.React)
 local Mionum = require(game.ReplicatedStorage.Packages.Mionum)
+local ShopState = require(game.ReplicatedStorage.Shared.Utils.ShopState)
+local TutorialRefs = require(game.ReplicatedStorage.Shared.producers.TutorialRefs)
 local e = React.createElement
 local useState = React.useState
 local useEffect = React.useEffect
@@ -225,6 +227,15 @@ local function ItemCard(
 		BorderSizePixel = 0,
 		LayoutOrder = props.LayoutOrder,
 		ZIndex = highlighted and 999 or 1,
+		ref = function(rbx)
+			if props.ItemId == "daybloom" and props.TutorialHighlight then
+				TutorialRefs.setDaybloomCard(rbx)
+			else
+				if props.ItemId == "daybloom" then
+					TutorialRefs.setDaybloomCard(nil)
+				end
+			end
+		end,
 		[React.Event.Activated] = function()
 			props.OnClick(props.ItemId)
 		end,
@@ -501,6 +512,7 @@ local function ItemShop(props: {
 })
 	local shopItems, setShopItems = useState({} :: { [string]: number })
 	local selectedItem, setSelectedItem = useState(nil :: string?)
+	local countdown, setCountdown = useState("00:00")
 
 	-- Memoized callback for selecting an item
 	local selectItem = useCallback(function(itemId: string)
@@ -549,6 +561,27 @@ local function ItemShop(props: {
 		end
 	end, { props.Open })
 
+	-- Update countdown every second
+	useEffect(function()
+		if not props.Open then
+			return
+		end
+
+		local running = true
+		task.spawn(function()
+			while running do
+				local shopState = ShopState.getCurrentState()
+				local timeText = ShopState.formatTime(math.floor(shopState.timeLeft))
+				setCountdown(timeText)
+				task.wait(1)
+			end
+		end)
+
+		return function()
+			running = false
+		end
+	end, { props.Open })
+
 	-- Handle in-game currency purchase
 	local function handleBuy(itemId: string)
 		if not debounce then
@@ -560,36 +593,35 @@ local function ItemShop(props: {
 		local itemConfig = ItemsConfig[itemId]
 
 		-- Play purchase sound if enough money
-		local sound: Sound? = game.ReplicatedStorage.Shared.SFX:FindFirstChild("PickUp")
-
-		if sound and props.PlayerData.Cash >= itemConfig.Price then
-			BuyItem:FireServer(itemId)
-			task.spawn(function()
-				sound = sound:Clone()
-				sound.Parent = game.Players.LocalPlayer
-				if not sound.IsLoaded then
-					sound.Loaded:Wait()
-				end
-				sound:Play()
-				sound.Ended:Wait()
-				sound:Destroy()
-			end)
-		else
-			-- Play error sound
-			local errorSound: Sound? = game.ReplicatedStorage.Shared.SFX:FindFirstChild("Error")
-			if errorSound then
-				task.spawn(function()
-					errorSound = errorSound:Clone()
-					errorSound.Parent = game.Players.LocalPlayer
-					if not errorSound.IsLoaded then
-						errorSound.Loaded:Wait()
-					end
-					errorSound:Play()
-					errorSound.Ended:Wait()
-					errorSound:Destroy()
-				end)
-			end
-		end
+		-- local sound: Sound? = game.ReplicatedStorage.Shared.SFX:FindFirstChild("PickUp")
+		BuyItem:FireServer(itemId)
+		-- if sound and props.PlayerData.Cash >= itemConfig.Price then
+		-- 	task.spawn(function()
+		-- 		sound = sound:Clone()
+		-- 		sound.Parent = game.Players.LocalPlayer
+		-- 		if not sound.IsLoaded then
+		-- 			sound.Loaded:Wait()
+		-- 		end
+		-- 		sound:Play()
+		-- 		sound.Ended:Wait()
+		-- 		sound:Destroy()
+		-- 	end)
+		-- else
+		-- 	-- Play error sound
+		-- 	local errorSound: Sound? = game.ReplicatedStorage.Shared.SFX:FindFirstChild("Error")
+		-- 	if errorSound then
+		-- 		task.spawn(function()
+		-- 			errorSound = errorSound:Clone()
+		-- 			errorSound.Parent = game.Players.LocalPlayer
+		-- 			if not errorSound.IsLoaded then
+		-- 				errorSound.Loaded:Wait()
+		-- 			end
+		-- 			errorSound:Play()
+		-- 			errorSound.Ended:Wait()
+		-- 			errorSound:Destroy()
+		-- 		end)
+		-- 	end
+		-- end
 
 		-- Refresh shop to update counts
 		task.wait(0.1)
@@ -670,15 +702,39 @@ local function ItemShop(props: {
 					CornerRadius = UDim.new(0, 12),
 				}),
 
-				Title = e("TextLabel", {
+				TitleContainer = e("Frame", {
 					Size = UDim2.new(1, -60, 1, 0),
 					Position = UDim2.fromOffset(20, 0),
 					BackgroundTransparency = 1,
-					Text = "🌿 INGREDIENTS SHOP",
-					TextColor3 = Color3.new(1, 1, 1),
-					Font = Enum.Font.FredokaOne,
-					TextSize = 20,
-					TextXAlignment = Enum.TextXAlignment.Left,
+				}, {
+					Layout = e("UIListLayout", {
+						FillDirection = Enum.FillDirection.Vertical,
+						HorizontalAlignment = Enum.HorizontalAlignment.Left,
+						VerticalAlignment = Enum.VerticalAlignment.Center,
+						Padding = UDim.new(0, 2),
+					}),
+
+					Title = e("TextLabel", {
+						Size = UDim2.new(1, 0, 0, 0),
+						AutomaticSize = Enum.AutomaticSize.Y,
+						BackgroundTransparency = 1,
+						Text = "🌿 INGREDIENTS SHOP",
+						TextColor3 = Color3.new(1, 1, 1),
+						Font = Enum.Font.FredokaOne,
+						TextSize = 20,
+						TextXAlignment = Enum.TextXAlignment.Left,
+					}),
+
+					Countdown = e("TextLabel", {
+						Size = UDim2.new(1, 0, 0, 0),
+						AutomaticSize = Enum.AutomaticSize.Y,
+						BackgroundTransparency = 1,
+						Text = "⏱ Refresh in " .. countdown,
+						TextColor3 = Color3.fromRGB(200, 255, 200),
+						Font = Enum.Font.FredokaOne,
+						TextSize = 14,
+						TextXAlignment = Enum.TextXAlignment.Left,
+					}),
 				}),
 
 				CloseButton = e("TextButton", {

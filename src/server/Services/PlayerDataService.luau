@@ -10,11 +10,26 @@ local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local Signal = require(game.ReplicatedStorage.Packages.Signal)
 
 type Profile = ProfileStoreModule.Profile<PlayerData> -- Typed Profile object
+export type PotionInstance = {
+	UID: string,
+	PotionId: string,
+	VariationId: string,
+	Size: number,
+}
 
+local Potions = {}
+-- for i = 1, 200 do
+-- 	table.insert(Potions, {
+-- 		UID = "i" .. i,
+-- 		PotionId = "daybloom",
+-- 		VariationId = "none",
+-- 		Size = math.random(1, 3),
+-- 	})
+-- end
 local PROFILE_TEMPLATE: PlayerSessions.Data = {
 	Cash = 50,
 	Cauldrons = {},
-	Potions = {},
+	Potions = Potions,
 	PotionSlots = {},
 	ThrownPotions = {},
 	PotionBook = {},
@@ -31,6 +46,7 @@ local PROFILE_TEMPLATE: PlayerSessions.Data = {
 	Collectors = {},
 	ShopCycles = {},
 	TutorialFinished = false,
+	Gifts = {},
 }
 
 local function selectPlayerData(player: Player)

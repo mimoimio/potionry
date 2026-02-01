@@ -29,6 +29,7 @@ function self.start()
 	end
 	local ss = require(game.ServerScriptService.Server.Services.ShopService)
 
+	local ShopService = require(script.Parent.ShopService)
 	local eventOn = false
 	local previousSeed = nil
 	task.spawn(function()
@@ -41,6 +42,10 @@ function self.start()
 				ss.notifyRefresh()
 			end
 			previousSeed = cs.seed
+
+			for i, player in game:GetService("Players"):GetPlayers() do
+				ShopService.GetCurrentShopItems(player)
+			end
 
 			-- Edge-detect isSpecial and pass seed + state
 			if cs.isSpecial and not eventOn then

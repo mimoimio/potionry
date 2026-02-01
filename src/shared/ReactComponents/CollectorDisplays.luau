@@ -36,37 +36,62 @@ local function CollectorDisplay(props: {
 		local session = PlayerSessions:getState().players[player]
 		local plot = session and session.Plot
 		if not plot then
-			warn("Not plot")
 			return
 		end
 
 		local rackFolder = plot.PotionSlots:FindFirstChild(props.RackId)
 		if not rackFolder then
-			warn("Not rack folder")
 			return
 		end
 		local rackmodel = rackFolder:FindFirstChild("Rack")
 		if not rackmodel then
 			return
 		end
-		local slotPart = rackmodel:FindFirstChild(props.SlotId)
-		if not slotPart then
-			warn("Not slot", rackFolder, props.SlotId)
+		local potionModel = rackmodel:FindFirstChild(props.PotionUID)
+		if not potionModel then
 			return
 		end
 
+		local cf, s = potionModel:GetBoundingBox()
+
+		local basePart = potionModel:FindFirstChildWhichIsA("BasePart", true)
+		if not basePart then
+			warn("NOT BASE PART")
+			local success, part = xpcall(function()
+				local start = tick()
+				while not potionModel:FindFirstChild("Bottle") and (tick() - start < 5) do
+					task.wait()
+				end
+				return potionModel:FindFirstChild("Bottle")
+			end, function()
+				warn("Waited but no part")
+			end)
+			if not (success and part) then
+				return
+			end
+			basePart = part
+		end
+
+		-- Create attachment
+		local attachment = Instance.new("Attachment")
+		attachment.Position = Vector3.new(0, s.Y / 2, 0)
+		attachment.Parent = basePart
+
 		-- Create billboard GUI
 		local bbgui = game.ReplicatedStorage.Shared.BillboardGui:Clone()
-		bbgui.Parent = slotPart
+		bbgui.Parent = attachment
 		billboardRef.current = bbgui
 
 		return function()
 			if billboardRef.current then
+				if billboardRef.current.Parent then
+					billboardRef.current.Parent:Destroy()
+				end
 				billboardRef.current:Destroy()
 				billboardRef.current = nil
 			end
 		end
-	end, { props.RackId, props.SlotId })
+	end, { props.RackId, props.SlotId, props.PotionUID })
 
 	-- Update billboard text
 	useEffect(function()
@@ -76,30 +101,50 @@ local function CollectorDisplay(props: {
 			local session = PlayerSessions:getState().players[player]
 			local plot = session and session.Plot
 			if not plot then
-				warn("Not plot")
 				return
 			end
 
 			local rackFolder = plot.PotionSlots:FindFirstChild(props.RackId)
 			if not rackFolder then
-				warn("Not rack folder")
 				return
 			end
 			local rackmodel = rackFolder:FindFirstChild("Rack")
 			if not rackmodel then
-				warn("Not rackmodel", rackFolder)
 				return
 			end
-			local slotPart = rackmodel:FindFirstChild(props.SlotId)
-			if not slotPart then
-				warn("Not slot", rackFolder, props.SlotId)
+			local potionModel = rackmodel:FindFirstChild(props.PotionUID)
+			if not potionModel then
 				return
 			end
+			local cf, s = potionModel:GetBoundingBox()
+			local basePart = potionModel:FindFirstChildWhichIsA("BasePart", true)
+			if not basePart then
+				warn("NOT BASE PART")
+				local success, part = xpcall(function()
+					local start = tick()
+					while not potionModel:FindFirstChild("Bottle") and (tick() - start < 5) do
+						task.wait()
+					end
+					return potionModel:WaitForChild("Bottle")
+				end, function()
+					warn("Waited but no part")
+				end)
+				if not success then
+					return
+				end
+				basePart = part
+			end
+
+			-- Create attachment
+			local attachment = Instance.new("Attachment")
+			attachment.Position = Vector3.new(0, s.Y / 2, 0)
+			attachment.Parent = basePart
 
 			-- Create billboard GUI
 			local bbgui = game.ReplicatedStorage.Shared.BillboardGui:Clone()
-			bbgui.Parent = slotPart
+			bbgui.Parent = attachment
 			billboardRef.current = bbgui
+
 			return
 		end
 

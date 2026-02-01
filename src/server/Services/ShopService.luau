@@ -15,7 +15,7 @@ function ShopService.generateItems()
 	-- Shop Logic
 	local TierRNGService = require(game.ServerScriptService.Server.Services.TierRNGService)
 	local shopItems = TierRNGService.getShopItems(state.seed)
-	warn("creating shopItems",shopItems)
+	print("creating shopItems", shopItems)
 
 	return shopItems
 end
@@ -25,9 +25,7 @@ GetShopItems.Name = "GetShopItems"
 
 local ShopRefreshed = Instance.new("RemoteEvent", game.ReplicatedStorage.Shared.Events)
 ShopRefreshed.Name = "ShopRefreshed"
-function ShopService.GetCurrentShopItems(player:Player)
-	-- local PlayerDataService = require(game.ServerScriptService.Server.Services.PlayerDataService)
-	-- local session = PlayerDataService:GetSession(player)
+function ShopService.GetCurrentShopItems(player: Player)
 	local PlayerSessions = require(game.ReplicatedStorage.Shared.producers.PlayerSessions)
 	local state = PlayerSessions:getState()
 	local session = state.players[player]
@@ -39,11 +37,10 @@ function ShopService.GetCurrentShopItems(player:Player)
 	local shopCycles = session.Data.ShopCycles
 	local shopitems = shopCycles[tostring(currentSeed)]
 
-	warn(shopCycles)
 	-- if not shop items then generate new
 	if not shopitems then
 		shopitems = ShopService.generateItems()
-		warn("no current items. Get new.",currentSeed, shopitems)
+		print("no current items. Get new.", currentSeed, shopitems)
 		PlayerSessions.setShopCycle(player, tostring(currentSeed), shopitems)
 	end
 	return shopitems

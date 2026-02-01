@@ -1,3 +1,4 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(game.ReplicatedStorage.Packages.React)
 local ReactRoblox = require(game.ReplicatedStorage.Packages.ReactRoblox)
 local CraftingModule = require(game.ReplicatedStorage.Shared.CraftingModule)
@@ -16,18 +17,8 @@ return function(props)
 	local ingredients = recipe and recipe.Ingredients or {}
 
 	React.useEffect(function()
-		local sound = game.ReplicatedStorage.Shared.SFX:FindFirstChild("TaDa")
-		task.spawn(function()
-			local rewardsound = sound:Clone() :: Sound
-			rewardsound.Parent = game.Players.LocalPlayer
-			rewardsound.Looped = false
-			if not rewardsound.IsLoaded then
-				rewardsound.Loaded:Wait()
-			end
-			rewardsound:Play()
-			rewardsound.Ended:Wait()
-			rewardsound:Destroy()
-		end)
+		local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
+		SoundController.Sound("TaDa")
 	end, {})
 	local playerGui = game.Players.LocalPlayer.PlayerGui
 

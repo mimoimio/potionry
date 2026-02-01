@@ -100,7 +100,7 @@ local function CreateRecipeConfig(ingredientIndices, allItemIds)
 		DisplayName = GetDisplayName(ingredients),
 		Ingredients = ingredients,
 	}
-	lvloffset += 0.1
+	lvloffset += 0.05
 	return config
 end
 

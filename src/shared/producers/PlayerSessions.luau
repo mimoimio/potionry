@@ -37,6 +37,13 @@ export type Data = {
 	},
 	Multipliers: { [string]: Multiplier },
 	TutorialFinished: boolean?,
+	Gifts: {
+		[number]: { -- senderUserId
+			PotionUID: string,
+			Timestamp: number,
+			SenderName: string,
+		},
+	}?,
 }
 
 export type PlayerEntity = {
@@ -55,14 +62,20 @@ export type PlayersActions = {
 	updateAllCollectors: () -> (),
 	setTutorialFinished: (player: Player, finished: boolean) -> (),
 	resetPlayer: (player: Player, data: Data) -> (),
+	setGifts: (player: Player, gifts: {}) -> (),
+	addGift: (player: Player, senderUserId: number, giftData: {}) -> (),
+	removeGift: (player: Player, senderUserId: number) -> (),
+	removePotion: (player: Player, potionUID: string) -> (),
 }
 
 export type PlayersState = {
 	players: { [Player]: PlayerEntity }, -- Renamed 'entities' to 'players' for clarity
+	currentSeed: string,
 }
 
 local initialState: PlayersState = {
 	players = {},
+	currentSeed = "",
 }
 
 local producer = Reflex.createProducer(initialState, {
@@ -74,14 +87,17 @@ local producer = Reflex.createProducer(initialState, {
 			Plot = plot,
 		}
 		return {
-			unpack(state),
 			players = newPlayers,
+			currentSeed = state.currentSeed,
 		}
 	end,
 	removePlayer = function(state: PlayersState, player)
 		local players = table.clone(state.players)
 		players[player] = nil
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	-- cash
@@ -96,7 +112,10 @@ local producer = Reflex.createProducer(initialState, {
 			players[player] = newEntity
 		end
 
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	-- potion actions
@@ -111,7 +130,6 @@ local producer = Reflex.createProducer(initialState, {
 
 			local newPotionBook = table.clone(entity.Data.PotionBook)
 			if not newPotionBook[potion.PotionId] then
-				warn("NEW IN POTIONBOOK!")
 				newPotionBook[potion.PotionId] = true
 				local newMultipliers = table.clone(newData.Multipliers)
 
@@ -122,15 +140,16 @@ local producer = Reflex.createProducer(initialState, {
 				}
 				newData.Multipliers = newMultipliers
 				newData.PotionBook = newPotionBook
-			else
-				warn("NOT NEW")
 			end
 
 			newData.Potions = newPotions
 			newEntity.Data = newData
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 	removePotions = function(state: PlayersState, player: Player, UIDs: { string })
 		local players = table.clone(state.players)
@@ -159,8 +178,8 @@ local producer = Reflex.createProducer(initialState, {
 			players[player] = newEntity
 		end
 		return {
-			unpack(state),
 			players = players,
+			currentSeed = state.currentSeed,
 		}
 	end,
 	removeBatchPotion = function(state: PlayersState, player: Player, UIDs: { string })
@@ -190,8 +209,8 @@ local producer = Reflex.createProducer(initialState, {
 			players[player] = newEntity
 		end
 		return {
-			unpack(state),
 			players = players,
+			currentSeed = state.currentSeed,
 		}
 	end,
 
@@ -213,7 +232,10 @@ local producer = Reflex.createProducer(initialState, {
 			newEntity.Data = newData
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 	addCauldron = function(state: PlayersState, player: Player, cauldronId: string)
 		local players = table.clone(state.players)
@@ -227,7 +249,10 @@ local producer = Reflex.createProducer(initialState, {
 			newEntity.Data = newData
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	-- potion slots actions
@@ -310,6 +335,11 @@ local producer = Reflex.createProducer(initialState, {
 						Collected = 0,
 						LastUpdate = workspace:GetServerTimeNow(),
 					}
+
+					if not isserver then
+						local SoundController = require(game.ReplicatedStorage.Shared.Controllers.SoundController)
+						SoundController.Sound("Done")
+					end
 				end
 
 				newCollectors[rackId] = newCollectorRack
@@ -318,7 +348,10 @@ local producer = Reflex.createProducer(initialState, {
 			newEntity.Data = newData
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	-- rack buying action
@@ -365,7 +398,10 @@ local producer = Reflex.createProducer(initialState, {
 			newEntity.Data = newData
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	-- ingredient actions
@@ -388,7 +424,10 @@ local producer = Reflex.createProducer(initialState, {
 			newEntity.Data = newData
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 	updateIngredient = function(state: PlayersState, player: Player, itemId: string, delta: number)
 		local players = table.clone(state.players)
@@ -405,7 +444,10 @@ local producer = Reflex.createProducer(initialState, {
 			newEntity.Data = newData
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	-- collector actions
@@ -430,7 +472,10 @@ local producer = Reflex.createProducer(initialState, {
 				players[player] = newEntity
 			end
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 	emptyCollector = function(state: PlayersState, player: Player, rackId: string, slotId: string)
 		local players = table.clone(state.players)
@@ -455,9 +500,12 @@ local producer = Reflex.createProducer(initialState, {
 		if not isserver then
 			-- Play sound
 			-- local SoundController = require(			)
-			shared.SoundController.CashSound()
+			shared.SoundController.Sound("Cash")
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 	updateAllCollectors = function(state: PlayersState)
 		local CraftingModule = require(game.ReplicatedStorage.Shared.CraftingModule)
@@ -545,7 +593,10 @@ local producer = Reflex.createProducer(initialState, {
 				players[player] = newEntity
 			end
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	-- multiplier actions
@@ -561,7 +612,10 @@ local producer = Reflex.createProducer(initialState, {
 			newEntity.Data = newData
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 	removeMultiplier = function(state: PlayersState, player: Player, multiplierId: string)
 		local players = table.clone(state.players)
@@ -575,7 +629,10 @@ local producer = Reflex.createProducer(initialState, {
 			newEntity.Data = newData
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 	addMultiplierDuration = function(
 		state: PlayersState,
@@ -599,7 +656,10 @@ local producer = Reflex.createProducer(initialState, {
 				players[player] = newEntity
 			end
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 	removeExpiredMultipliers = function(state: PlayersState, player: Player, currentTime: number)
 		local players = table.clone(state.players)
@@ -623,7 +683,10 @@ local producer = Reflex.createProducer(initialState, {
 				players[player] = newEntity
 			end
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	setShopCycle = function(state: PlayersState, player: Player, currentSeed: string, shopItems: { [string]: number })
@@ -661,9 +724,11 @@ local producer = Reflex.createProducer(initialState, {
 			newData.ShopCycles = newShopCycles
 			newEntity.Data = newData
 			players[player] = newEntity
-			warn("DONE", players)
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	-- tutorial action
@@ -677,7 +742,10 @@ local producer = Reflex.createProducer(initialState, {
 			newEntity.Data = newData
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	-- reset action
@@ -689,7 +757,10 @@ local producer = Reflex.createProducer(initialState, {
 			newEntity.Data = data
 			players[player] = newEntity
 		end
-		return { unpack(state), players = players }
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
 	end,
 
 	-- character action
@@ -702,8 +773,84 @@ local producer = Reflex.createProducer(initialState, {
 			players[player] = newEntity
 		end
 		return {
-			unpack(state),
 			players = players,
+			currentSeed = state.currentSeed,
+		}
+	end,
+
+	-- gift actions
+	setGifts = function(state: PlayersState, player: Player, gifts: {})
+		local players = table.clone(state.players)
+		local entity = players[player]
+		if entity then
+			local newEntity = table.clone(entity)
+			local newData = table.clone(entity.Data)
+			newData.Gifts = gifts
+			newEntity.Data = newData
+			players[player] = newEntity
+		end
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
+	end,
+	addGift = function(state: PlayersState, player: Player, senderUserId: number, giftData: {})
+		local players = table.clone(state.players)
+		local entity = players[player]
+		if entity then
+			local newEntity = table.clone(entity)
+			local newData = table.clone(entity.Data)
+			local newGifts = table.clone(entity.Data.Gifts or {})
+			newGifts[senderUserId] = giftData
+			newData.Gifts = newGifts
+			newEntity.Data = newData
+			players[player] = newEntity
+		end
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
+	end,
+	removeGift = function(state: PlayersState, player: Player, senderUserId: number)
+		local players = table.clone(state.players)
+		local entity = players[player]
+		if entity then
+			local newEntity = table.clone(entity)
+			local newData = table.clone(entity.Data)
+			local newGifts = table.clone(entity.Data.Gifts or {})
+			newGifts[senderUserId] = nil
+			newData.Gifts = newGifts
+			newEntity.Data = newData
+			players[player] = newEntity
+		end
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
+	end,
+	removePotion = function(state: PlayersState, player: Player, potionUID: string)
+		local players = table.clone(state.players)
+		local entity = players[player]
+		if entity then
+			local newEntity = table.clone(entity)
+			local newData = table.clone(entity.Data)
+			local newPotions = table.clone(entity.Data.Potions)
+
+			-- Filter out the potion with matching UID
+			local filteredPotions = {}
+			for _, potion: PotionConfigs.PotionInstance in newPotions do
+				if potion.UID ~= potionUID then
+					table.insert(filteredPotions, potion)
+				end
+			end
+
+			newData.Potions = filteredPotions
+			newEntity.Data = newData
+			players[player] = newEntity
+		end
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
 		}
 	end,
 })

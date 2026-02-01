@@ -1,3 +1,5 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 local React = require(game.ReplicatedStorage.Packages.React)
 local e = React.createElement
 local useEffect = React.useEffect
@@ -70,8 +72,8 @@ local function RemovePotionTool(props: { enabled: boolean })
 			end
 
 			-- Match pattern Rack# and Slot#
-			local rackMatch =  target:GetAttribute("RackNum") or nil
-			local slotMatch =  target:GetAttribute("SlotNum") or nil
+			local rackMatch = target:GetAttribute("RackNum") or nil
+			local slotMatch = target:GetAttribute("SlotNum") or nil
 
 			if rackMatch and slotMatch then
 				-- Extract rack ID and slot number
@@ -84,6 +86,8 @@ local function RemovePotionTool(props: { enabled: boolean })
 					return
 				end
 				SetPotionSlot:FireServer(rackId, slotNum)
+				local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
+				SoundController.Sound("Done")
 
 				-- Optional: Visual feedback
 				-- local sound = game.ReplicatedStorage.Shared.SFX:FindFirstChild("Ping")

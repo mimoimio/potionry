@@ -1,3 +1,4 @@
+--!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PlayerSessions = require(game.ReplicatedStorage.Shared.producers.PlayerSessions)
 local PotionConfigs = require(game.ReplicatedStorage.Shared.Configs.PotionConfigs)
@@ -330,6 +331,400 @@ function PotionService.initialize()
 			warn("No valid potions to sell for", player.Name)
 		end
 	end)
+
+	local PotionClicked = Instance.new("RemoteEvent", ReplicatedStorage.Shared.Events)
+	PotionClicked.Name = "PotionClicked"
+
+	-- ThrowPotion RemoteEvent
+	local ThrowPotion = Instance.new("RemoteEvent", ReplicatedStorage.Shared.Events)
+	ThrowPotion.Name = "ThrowPotion"
+	ThrowPotion.OnServerEvent:Connect(
+		function(player: Player, potionUID: string, hitCFrame: CFrame, additionalVelocity: Vector3)
+			if not potionUID or not hitCFrame then
+				warn("Invalid arguments for ThrowPotion")
+				return
+			end
+			additionalVelocity = additionalVelocity or Vector3.new()
+
+			local playerSession = getPlayerSession(player)
+			if not playerSession then
+				warn("No player session found")
+				return
+			end
+
+			local pd = playerSession.Data
+			if not pd then
+				warn("No player data found for", player.Name)
+				return
+			end
+
+			-- Throw the potion
+			local character = player.Character
+			if not character or not character:FindFirstChild("HumanoidRootPart") then
+				warn("Player character not available for throwing")
+				return
+			end
+
+			-- Find potion in player data
+			local potion = nil
+			for _, p in ipairs(pd.Potions) do
+				if p.UID == potionUID then
+					potion = p
+					break
+				end
+			end
+
+			if not potion then
+				warn("Potion not found for throwing:", potionUID)
+				return
+			end
+
+			-- Remove potion from player inventory
+			PlayerSessions.removePotion(player, potionUID)
+
+			-- Get potion model
+			local potionModel = game.ReplicatedStorage.Shared.Models.Potions:FindFirstChild(potion.PotionId)
+			if not potionModel then
+				warn("Potion model not found:", potion.PotionId)
+				return
+			end
+
+			local thrownModel = potionModel:Clone() :: Model
+			-- Make all parts anchored
+			for _, part in thrownModel:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.Anchored = true
+				end
+			end
+			local cf, s = thrownModel:GetBoundingBox()
+			thrownModel.WorldPivot = cf
+
+			-- Apply size if exists
+			if potion.Size then
+				thrownModel:ScaleTo(1 + (potion.Size - 1) / 3)
+			end
+
+			-- Set initial position at character pivot
+			local startCFrame = character:GetPivot()
+			thrownModel:PivotTo(startCFrame)
+			thrownModel.Parent = workspace
+
+			-- Calculate trajectory direction
+			local direction = (hitCFrame.Position - startCFrame.Position).Unit
+			direction += Vector3.new(math.random() * 0.1 - 0.05, math.random() * 0.1 - 0.05, math.random() * 0.1 - 0.05)
+			local velocity = direction * 50
+				+ direction * (0.8 * additionalVelocity.Magnitude)
+				+ additionalVelocity * 0.4
+			-- Initial velocity of 50 studs/s
+			local speed = velocity.Magnitude
+			warn("speed", speed)
+
+			-- Spawn throw score indicator
+			local Debris = game:GetService("Debris")
+			local hrp = character:FindFirstChild("HumanoidRootPart")
+			local puddlefolder = workspace:FindFirstChild("PuddleEffects") or Instance.new("Folder")
+			if not puddlefolder.Parent then
+				puddlefolder.Name = "PuddleEffects"
+				puddlefolder.Parent = workspace
+			end
+			local indicatorPart = Instance.new("Part")
+			indicatorPart.Size = Vector3.new(1, 1, 1)
+			indicatorPart.Transparency = 1
+			indicatorPart.Anchored = false
+			indicatorPart.CanCollide = false
+			indicatorPart.Massless = true
+
+			-- Random 3D offset
+			local randomOffset = Vector3.new(math.random(-3, 3), math.random(2, 5), math.random(-3, 3))
+			indicatorPart.CFrame = hrp.CFrame * CFrame.new(randomOffset)
+			indicatorPart.Parent = workspace
+
+			-- Weld to HumanoidRootPart
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = hrp
+			weld.Part1 = indicatorPart
+			weld.Parent = indicatorPart
+
+			local billboardTemplate = game.ReplicatedStorage.Shared:FindFirstChild("BillboardGui")
+			if billboardTemplate then
+				local billboard = billboardTemplate:Clone()
+				billboard.Parent = indicatorPart
+				local textLabel = billboard:FindFirstChild("TextLabel")
+				if textLabel then
+					-- Determine throw grade based on speed
+					local throwGrade = "THROW!"
+					local gradeColor = Color3.fromRGB(255, 255, 255)
+
+					if speed >= 130 then
+						throwGrade = "PERFECT THROW!"
+						gradeColor = Color3.fromRGB(255, 215, 0) -- Gold
+					elseif speed >= 90 then
+						throwGrade = "GOOD THROW!"
+						gradeColor = Color3.fromRGB(50, 255, 50) -- Green
+					end
+
+					textLabel.Text = throwGrade
+					textLabel.TextColor3 = gradeColor
+				end
+			end
+
+			Debris:AddItem(indicatorPart, 3)
+
+			local gravity = Vector3.new(0, -50, 0) -- Gravity acceleration
+			local currentPosition = startCFrame.Position
+			local currentRotation = startCFrame.Rotation
+
+			-- Random rotation speed (degrees per second)
+			local r = Random.new()
+			local rotationSpeed = Vector3.new(r:NextNumber(-360, 360), r:NextNumber(-360, 360), r:NextNumber(-360, 360))
+
+			-- Setup raycast params
+			local raycastParams = RaycastParams.new()
+			raycastParams.FilterDescendantsInstances = { thrownModel, character, puddlefolder }
+			raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+			-- Physics simulation
+			local RunService = game:GetService("RunService")
+			local connection
+			local elapsedTime = 0
+			local maxTime = 10 -- Maximum 10 seconds of flight
+
+			-- Create trail for thrown potion
+			local mainPart = thrownModel.PrimaryPart or thrownModel:FindFirstChildWhichIsA("BasePart")
+			local attachment0 = Instance.new("Attachment")
+			attachment0.Parent = mainPart
+			attachment0.Position = Vector3.new(1, -2, 0)
+			local attachment1 = Instance.new("Attachment")
+			attachment1.Parent = mainPart
+			attachment1.Position = Vector3.new(0, 1, 0)
+
+			local trail = Instance.new("Trail")
+			trail.Attachment0 = attachment0
+			trail.Attachment1 = attachment1
+			trail.Color = ColorSequence.new(thrownModel:FindFirstChild("Fill").Color)
+			trail.Transparency = NumberSequence.new(0.3, 1)
+			trail.Lifetime = 2
+			trail.MinLength = 0
+			trail.FaceCamera = true
+			trail.Parent = thrownModel
+
+			-- Add ingredient trails
+			local CraftingModule = require(game.ReplicatedStorage.Shared.CraftingModule)
+			local recipe = CraftingModule.CraftingLookup[potion.PotionId]
+			if recipe and recipe.Ingredients then
+				local ingredientCount = 0
+				for _ in pairs(recipe.Ingredients) do
+					ingredientCount += 1
+				end
+
+				local trailCount = ingredientCount + 1 -- If 1 ingredient = 2 trails, etc.
+				local angleStep = (math.pi * 2) / trailCount
+				local radius = 2
+				local ingredientIndex = 0
+
+				for i, ingredientId in pairs(recipe.Ingredients) do
+					ingredientIndex += 1
+					local angle = angleStep * ingredientIndex
+					local offsetX = math.cos(angle) * radius
+					local offsetZ = math.sin(angle) * radius
+
+					-- Get ingredient's potion color
+					local ingredientPotionModel =
+						game.ReplicatedStorage.Shared.Models.Potions:FindFirstChild(ingredientId)
+					local ingredientColor = Color3.fromRGB(255, 255, 255)
+					if ingredientPotionModel then
+						local fillPart = ingredientPotionModel:FindFirstChild("Fill")
+						if fillPart then
+							ingredientColor = fillPart.Color
+						end
+					end
+
+					local att0 = Instance.new("Attachment")
+					att0.Parent = mainPart
+					att0.Position = Vector3.new(offsetX, -2, offsetZ)
+					local att1 = Instance.new("Attachment")
+					att1.Parent = mainPart
+					att1.Position = Vector3.new(offsetX * 0.5, 1, offsetZ * 0.5)
+
+					local ingredientTrail = Instance.new("Trail")
+					ingredientTrail.Attachment0 = att0
+					ingredientTrail.Attachment1 = att1
+					ingredientTrail.Color = ColorSequence.new(ingredientColor)
+					ingredientTrail.Transparency = NumberSequence.new(0.5, 1)
+					ingredientTrail.Lifetime = 2
+					ingredientTrail.MinLength = 0
+					ingredientTrail.FaceCamera = true
+					ingredientTrail.Parent = thrownModel
+				end
+			end
+
+			connection = RunService.Heartbeat:Connect(function(deltaTime)
+				elapsedTime = elapsedTime + deltaTime
+				if elapsedTime > maxTime then
+					connection:Disconnect()
+					thrownModel:Destroy()
+					return
+				end
+
+				-- Update velocity with gravity
+				velocity = velocity + gravity * deltaTime
+				-- Calculate next position
+				local displacement = velocity * deltaTime
+				local nextPosition = currentPosition + displacement
+
+				-- Raycast for collision
+				local rayResult = workspace:Raycast(currentPosition, displacement, raycastParams)
+
+				if rayResult then
+					-- Collision detected - create puddle
+					connection:Disconnect()
+
+					local puddle = Instance.new("Part")
+					puddle.Material = "Neon"
+					puddle.Size = Vector3.new(4, 1, 4)
+					puddle.Position = rayResult.Position
+					puddle.Anchored = true
+					puddle.CanCollide = false
+					puddle.Color = thrownModel:FindFirstChild("Fill").Color
+					puddle.Transparency = 0.4
+					puddle.Name = "PotionPuddle"
+					puddle.Parent = puddlefolder
+
+					local additionalSpeed = velocity.Magnitude * 1
+
+					local shattersound = game.ReplicatedStorage.Shared.SFX:FindFirstChild(
+						({ "shatter", "shatter2", "shatter3" })[r:NextInteger(1, 3)]
+					)
+					local sound: Sound
+					if shattersound then
+						task.spawn(function()
+							sound = shattersound:Clone() :: Sound
+							-- sound.Volume = additionalSpeed / 50
+							-- sound.PlaybackSpeed = math.min(15, 1 / (additionalSpeed / 50))
+							-- sound.PlaybackRegionsEnabled = true
+							-- sound.RollOffMaxDistance = 10000 * additionalSpeed
+							-- sound.RollOffMinDistance = 10
+							sound.Parent = puddle
+							if not sound.IsLoaded then
+								sound.Loaded:Wait()
+							end
+							sound:Play()
+							sound.Ended:Wait()
+							task.wait(1)
+							sound:Destroy()
+						end)
+					end
+
+					local shardEmitter = Instance.new("ParticleEmitter")
+					shardEmitter.Texture = "http://www.roblox.com/asset/?id=125738090794255"
+					shardEmitter.Transparency = NumberSequence.new(0, 1)
+					shardEmitter.Rate = 0
+					shardEmitter.Lifetime = NumberRange.new(2, 4)
+					shardEmitter.Speed = NumberRange.new(10, 100 + additionalSpeed)
+					shardEmitter.SpreadAngle = Vector2.new(40, 40)
+					shardEmitter.Acceleration = Vector3.new(0, -100, 0)
+					shardEmitter.RotSpeed = NumberRange.new(-90, 90 + additionalSpeed)
+					shardEmitter.Rotation = NumberRange.new(-90, 90)
+					shardEmitter.Parent = puddle
+					shardEmitter.Size = NumberSequence.new(1, math.min(6, (additionalSpeed / 50) ^ 3))
+					shardEmitter.ZOffset = 2
+					local bubbleEmitter = Instance.new("ParticleEmitter")
+					bubbleEmitter.Texture = "http://www.roblox.com/asset/?id=2924164961"
+					bubbleEmitter.Transparency = NumberSequence.new(0, 1)
+					bubbleEmitter.ZOffset = 2
+					bubbleEmitter.Size = NumberSequence.new(1, math.min(6, (additionalSpeed / 50) ^ 3))
+					bubbleEmitter.LightEmission = 1
+					bubbleEmitter.LightInfluence = 0
+					bubbleEmitter.Color = ColorSequence.new(thrownModel:FindFirstChild("Fill").Color)
+					bubbleEmitter.Rate = 0
+					bubbleEmitter.Lifetime = NumberRange.new(2, 4)
+					bubbleEmitter.Speed = NumberRange.new(10, 20 + additionalSpeed / 5)
+					bubbleEmitter.SpreadAngle = Vector2.new(40, 40)
+					bubbleEmitter.Acceleration = Vector3.new(0, -5, 0)
+					bubbleEmitter.Drag = 1
+					bubbleEmitter.RotSpeed = NumberRange.new(-90, 90 + additionalSpeed)
+					bubbleEmitter.Rotation = NumberRange.new(-90, 90)
+					bubbleEmitter.Parent = puddle
+					local emitters = {}
+					if potion.VariationId and potion.VariationId ~= "none" then
+						local vfxFolder = game.ReplicatedStorage.Shared:FindFirstChild("VFX")
+						if vfxFolder then
+							local vfxAsset = vfxFolder:FindFirstChild(potion.VariationId)
+							if vfxAsset then
+								local vfxClone = vfxAsset:Clone()
+								vfxClone.Parent = puddle
+								for _, emitter in ipairs(vfxClone:GetDescendants()) do
+									if emitter:IsA("ParticleEmitter") then
+										emitter.Parent = puddle
+										emitter.Acceleration = Vector3.new(0, 1, 0)
+										emitter.Drag = 1
+										emitter.Size = NumberSequence.new({
+											NumberSequenceKeypoint.new(0, 1),
+											NumberSequenceKeypoint.new(1, 3),
+										})
+										emitter.LightEmission = 1
+										emitter.LightInfluence = 0
+										emitter.Color = ColorSequence.new(
+											thrownModel:FindFirstChild("Fill") and thrownModel.Fill.Color
+												or Color3.new(1, 1, 1)
+										)
+										emitter.Rate = 0
+										emitter.Lifetime = NumberRange.new(2, 4)
+										emitter.Speed = NumberRange.new(10, 20 + additionalSpeed / 5)
+										emitter.SpreadAngle = Vector2.new(40, 40)
+										emitter.Acceleration = Vector3.new(0, -5, 0)
+										emitter.Drag = 1
+										emitter.RotSpeed = NumberRange.new(0)
+										emitter.Rotation = NumberRange.new(-15, 15)
+										table.insert(emitters)
+									end
+								end
+							end
+						end
+					end
+
+					-- trail.Parent = puddle
+					task.delay(0.1, function()
+						shardEmitter:Emit(40)
+						bubbleEmitter:Emit(40)
+						for i, e in emitters do
+							e:Emit(40)
+						end
+						-- VFX for potion variation
+					end)
+					-- Destroy puddle after 5 seconds
+					task.delay(5, function()
+						if puddle and puddle.Parent then
+							if sound then
+								if sound.Playing then
+									sound.Ended:Wait()
+								end
+								thrownModel:Destroy()
+								puddle:Destroy()
+							end
+						end
+					end)
+					for i, d in thrownModel:GetDescendants() do
+						if not d:IsA("BasePart") then
+							continue
+						end
+						d.Transparency = 1
+					end
+					return
+				end
+
+				-- Update position and rotation
+				currentPosition = nextPosition
+				currentRotation = currentRotation
+					* CFrame.Angles(
+						math.rad(rotationSpeed.X * deltaTime),
+						math.rad(rotationSpeed.Y * deltaTime),
+						math.rad(rotationSpeed.Z * deltaTime)
+					)
+				thrownModel:PivotTo(CFrame.new(currentPosition) * currentRotation)
+			end)
+		end
+	)
 end
 
 return PotionService

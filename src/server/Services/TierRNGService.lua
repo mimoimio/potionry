@@ -60,7 +60,7 @@ function TierRNGService.getShopItems(seed: number)
 	return shopItems
 end
 
-function TierRNGService:roll(): TierConfig
+function TierRNGService:roll()
 	local tiercfg
 	if not TierRNGService.isInitialized then
 		warn("NOT YET INITIALIZED")

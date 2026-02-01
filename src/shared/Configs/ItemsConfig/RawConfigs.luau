@@ -70,7 +70,7 @@ return {
 	{
 		ItemId = "daybloom",
 		DisplayName = "Daybloom",
-		Rate = 2,
+		Rate = 1,
 		Price = 10,
 		TierId = "common",
 	},

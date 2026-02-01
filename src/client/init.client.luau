@@ -1,4 +1,5 @@
 local CollectionService = game:GetService("CollectionService")
+local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -63,7 +64,6 @@ local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.Char
 local Events = game.ReplicatedStorage.Shared:WaitForChild("Events")
 local ScreenGui, root, jumpconn
 local bodyparts = {}
-
 local function loadApp(character: Model)
 	if ScreenGui then
 		ScreenGui:Destroy()

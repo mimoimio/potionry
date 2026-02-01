@@ -17,6 +17,7 @@ local Players = game:GetService("Players")
 
 local useRobloxInventory = require(script.Parent.useRobloxInventory)
 local PotionViewport = require(script.Parent.PotionViewport)
+local ThrowPanelProducer = require(game.ReplicatedStorage.Shared.producers.ThrowPanel)
 
 local e = React.createElement
 local useState = React.useState
@@ -26,8 +27,10 @@ local useRef = React.useRef
 -- Constants
 local ROWS = 6
 local COLS = 9
-local TOTAL_SLOTS = ROWS * COLS
+local TOTAL_SLOTS = 1000
 local HOTBAR_SLOTS = 9
+local ROWS_PER_PAGE = 3 -- Show 3 rows per page when inventory is open
+local SLOTS_PER_PAGE = ROWS_PER_PAGE * COLS -- 27 slots per page
 local SLOT_SIZE = 65
 local PADDING = 5
 local PLAYER_GUI = Players.LocalPlayer.PlayerGui
@@ -114,11 +117,31 @@ end
 
 local function InventoryApp(props)
 	-- 1. Data State
-	local inventory, setInventory = useRobloxInventory(TOTAL_SLOTS)
+	local inventory, setInventory = useRobloxInventory(1000)
 
 	-- 2. UI State
 	local isOpen = props.InventoryOpen
 	local isVisible, setIsVisible = useState(true)
+	local currentPage, setCurrentPage = useState(1)
+
+	useEffect(function()
+		if props.panel == "craft" then
+			setIsVisible(false)
+		else
+			setIsVisible(true)
+		end
+	end, { props.panel })
+
+	-- Count actual items in inventory (excluding hotbar)
+	local actualItemCount = 0
+	for i = HOTBAR_SLOTS + 1, TOTAL_SLOTS do
+		if inventory[i] then
+			actualItemCount = actualItemCount + 1
+		end
+	end
+
+	-- Calculate total pages based on actual items (minimum 1 page)
+	local totalPages = math.max(1, math.ceil(actualItemCount / SLOTS_PER_PAGE))
 
 	-- 3. Dragging & Input State
 	local isDragging, setIsDragging = useState(false)
@@ -144,8 +167,13 @@ local function InventoryApp(props)
 
 		if tool.Parent == char then
 			hum:UnequipTools()
+			-- Unequipping - clear equipped potion
+			ThrowPanelProducer.setEquippedPotion("none")
 		else
 			hum:EquipTool(tool)
+			-- Equipping - store potion UID
+			local potionUID = tool.Name
+			ThrowPanelProducer.setEquippedPotion(potionUID)
 		end
 	end
 
@@ -218,7 +246,6 @@ local function InventoryApp(props)
 			input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch
 		then
-			warn("MOUSE1 down")
 			if inventory[index] then
 				setIsMouseDown(true)
 				setDragSourceIndex(index)
@@ -338,9 +365,30 @@ local function InventoryApp(props)
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	})
 
-	local limit = isOpen and TOTAL_SLOTS or HOTBAR_SLOTS
+	-- Calculate which slots to show based on pagination
+	local visibleSlots = {}
 
-	for i = 1, limit do
+	if isOpen then
+		-- Always show hotbar (slots 1-9)
+		for i = 1, HOTBAR_SLOTS do
+			table.insert(visibleSlots, i)
+		end
+
+		-- Show current page of inventory slots (slots 10+)
+		local pageStartSlot = HOTBAR_SLOTS + ((currentPage - 1) * SLOTS_PER_PAGE) + 1
+		local pageEndSlot = math.min(pageStartSlot + SLOTS_PER_PAGE - 1, TOTAL_SLOTS)
+
+		for i = pageStartSlot, pageEndSlot do
+			table.insert(visibleSlots, i)
+		end
+	else
+		-- Only show hotbar when closed
+		for i = 1, HOTBAR_SLOTS do
+			table.insert(visibleSlots, i)
+		end
+	end
+
+	for _, i in ipairs(visibleSlots) do
 		local tool = inventory[i]
 		local isSource = (isDragging and dragSourceIndex == i)
 		local isTarget = (isDragging and dragTargetIndex == i and dragTargetIndex ~= dragSourceIndex)
@@ -422,7 +470,9 @@ local function InventoryApp(props)
 	-- Calculate size based on open/closed state
 	-- We add a little extra padding (+10) to the frame size so the slots don't touch the edge
 	local totalWidth = (COLS * (SLOT_SIZE + PADDING)) + 10
-	local totalHeight = isOpen and ((ROWS * (SLOT_SIZE + PADDING)) + 10) or ((1 * (SLOT_SIZE + PADDING)) + 10)
+	-- When open: show hotbar (1 row) + page rows (3 rows) + pagination buttons (50px)
+	local openHeight = ((1 + ROWS_PER_PAGE) * (SLOT_SIZE + PADDING)) + 50
+	local totalHeight = isOpen and openHeight or ((1 * (SLOT_SIZE + PADDING)) + 10)
 
 	return e("Frame", {
 		-- 1. Positioning (Bottom Center)
@@ -431,10 +481,11 @@ local function InventoryApp(props)
 
 		-- 2. Sizing
 		Size = UDim2.fromOffset(totalWidth, totalHeight),
-		Visible = isVisible,
+		Visible = props.panel == "none" or props.panel == "inventory" or props.panel == "removepotion" or props.panel == "throw",
+		-- Visible = isVisible,
 		-- 3. Styling
 		BackgroundColor3 = Color3.fromRGB(20, 20, 20),
-		BackgroundTransparency = 0.2,
+		BackgroundTransparency = 0.8,
 		BorderSizePixel = 0,
 		ZIndex = -10000,
 	}, {
@@ -483,6 +534,66 @@ local function InventoryApp(props)
 			ZIndex = 10,
 			[React.Event.Activated] = sortInventory,
 		}),
+
+		-- Pagination Controls (Only show when inventory is open)
+		PaginationContainer = isOpen and totalPages > 1 and e("Frame", {
+			Size = UDim2.new(1, 0, 0, 35),
+			Position = UDim2.new(0, 0, 1, -40),
+			BackgroundTransparency = 1,
+			ZIndex = 10,
+		}, {
+			PrevButton = e("TextButton", {
+				Text = "◀",
+				Font = Enum.Font.FredokaOne,
+				TextColor3 = currentPage > 1 and Color3.new(1, 1, 1) or Color3.fromRGB(100, 100, 100),
+				TextSize = 18,
+				BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+				Size = UDim2.fromOffset(50, 30),
+				Position = UDim2.new(0, 10, 0.5, 0),
+				AnchorPoint = Vector2.new(0, 0.5),
+				ZIndex = 11,
+				[React.Event.Activated] = function()
+					if currentPage > 1 then
+						setCurrentPage(currentPage - 1)
+					end
+				end,
+			}, {
+				UICorner = e("UICorner", { CornerRadius = UDim.new(0, 4) }),
+			}),
+
+			PageLabel = e("TextLabel", {
+				Text = string.format("Page %d/%d", currentPage, totalPages),
+				Font = Enum.Font.FredokaOne,
+				TextColor3 = Color3.new(1, 1, 1),
+				TextSize = 14,
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(0.4, 1),
+				Position = UDim2.fromScale(0.5, 0),
+				AnchorPoint = Vector2.new(0.5, 0),
+				ZIndex = 11,
+			}),
+
+			NextButton = e("TextButton", {
+				Text = "▶",
+				Font = Enum.Font.FredokaOne,
+				TextColor3 = currentPage < totalPages and Color3.new(1, 1, 1) or Color3.fromRGB(100, 100, 100),
+				TextSize = 18,
+				BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+				Size = UDim2.fromOffset(50, 30),
+				Position = UDim2.new(1, -10, 0.5, 0),
+				AnchorPoint = Vector2.new(1, 0.5),
+				ZIndex = 11,
+				[React.Event.Activated] = function()
+					if currentPage < totalPages then
+						setCurrentPage(currentPage + 1)
+					end
+				end,
+			}, {
+				UICorner = e("UICorner", { CornerRadius = UDim.new(0, 4) }),
+			}),
+		}),
+
+		--
 
 		-- B. The Slots Container (Wraps the grid)
 		SlotsContainer = e("Frame", {

@@ -11,6 +11,8 @@
 ]]
 
 local React = require(game.ReplicatedStorage.Packages.React)
+local TutorialRefs = require(game.ReplicatedStorage.Shared.producers.TutorialRefs)
+local TweenService = game:GetService("TweenService")
 local useState = React.useState
 local useEffect = React.useEffect
 local useRef = React.useRef
@@ -96,9 +98,11 @@ end
 local function TutorialV2(props: TutorialProps)
 	local beamRef = useRef(nil)
 	local currentActionRef = useRef(nil)
+	local pulseRef = useRef(nil)
 	local character, setCharacter = useState(player.Character)
 	local tutorialMessage, setTutorialMessage = useState("")
 	local highlightTarget, setHighlightTarget = useState(nil)
+	local tutorialRefs, setTutorialRefs = useState({} :: TutorialRefs.TutorialRefsState)
 
 	-- Track character changes
 	useEffect(function()
@@ -123,6 +127,21 @@ local function TutorialV2(props: TutorialProps)
 			if charRemovingConn then
 				charRemovingConn:Disconnect()
 			end
+		end
+	end, {})
+
+	-- Subscribe to TutorialRefs
+	useEffect(function()
+		local unsubscribe = TutorialRefs:subscribe(function(state)
+			warn("changed:", state)
+			setTutorialRefs(state)
+		end)
+
+		-- Initial state
+		setTutorialRefs(TutorialRefs:getState())
+
+		return function()
+			unsubscribe()
 		end
 	end, {})
 
@@ -424,6 +443,16 @@ local function TutorialV2(props: TutorialProps)
 									beamRef.current = createBeam(hrp, nearestCauldron)
 									setTutorialMessage("🔮 Click the cauldron to start brewing!")
 								end
+								-- Cleanup pulse overlay
+								if pulseRef.current then
+									if pulseRef.current.tween then
+										pulseRef.current.tween:Cancel()
+									end
+									if pulseRef.current.gui then
+										pulseRef.current.gui:Destroy()
+									end
+									pulseRef.current = nil
+								end
 								continue
 							end
 
@@ -434,7 +463,54 @@ local function TutorialV2(props: TutorialProps)
 									cleanupBeam(beamRef.current)
 									beamRef.current = nil
 									beamRef.current = createBeam(hrp, nearestCauldron)
-									setTutorialMessage("Go to your Cauldron at your base")
+									setTutorialMessage("Go to your Cauldron or use the Base button")
+
+									-- Create pulsing overlay on BaseButton
+									local state = TutorialRefs:getState()
+									if state and state.baseButton and not pulseRef.current then
+										task.spawn(function()
+											local sg = Instance.new("ScreenGui")
+											sg.Name = "TutorialPulse"
+											sg.DisplayOrder = 1000
+											sg.Parent = player.PlayerGui
+											local img = Instance.new("ImageLabel")
+											local v2: Vector2 = tutorialRefs.baseButton.AbsoluteSize
+												+ Vector2.new(20, 20)
+											img.Size = UDim2.fromOffset(100, 100)
+											img.Position = UDim2.fromOffset(
+												tutorialRefs.baseButton.AbsolutePosition.X
+													+ tutorialRefs.baseButton.AbsoluteSize.X / 2,
+												tutorialRefs.baseButton.AbsolutePosition.Y
+													+ tutorialRefs.baseButton.AbsoluteSize.Y
+											)
+											img.BackgroundTransparency = 1
+											img.Image = "rbxassetid://12364133962"
+											img.ImageColor3 = Color3.fromRGB(255, 255, 255)
+											img.ImageTransparency = 0
+											img.Parent = sg
+											img.AnchorPoint = Vector2.new(0.5, 0)
+
+											local tweenInfo = TweenInfo.new(
+												0.3,
+												Enum.EasingStyle.Sine,
+												Enum.EasingDirection.InOut,
+												-1,
+												true
+											)
+											local tween = TweenService:Create(img, tweenInfo, {
+												ImageTransparency = 0.7,
+												Position = UDim2.fromOffset(
+													tutorialRefs.baseButton.AbsolutePosition.X
+														+ tutorialRefs.baseButton.AbsoluteSize.X / 2,
+													tutorialRefs.baseButton.AbsolutePosition.Y + 90
+												),
+											})
+
+											tween:Play()
+
+											pulseRef.current = { gui = sg, tween = tween }
+										end)
+									end
 								end
 								if not beamRef.current then
 									beamRef.current = createBeam(hrp, nearestCauldron)
@@ -442,6 +518,16 @@ local function TutorialV2(props: TutorialProps)
 							else
 								-- Cauldron not found yet, keep searching
 								currentActionRef.current = "searching_cauldron"
+								-- Cleanup pulse overlay
+								if pulseRef.current then
+									if pulseRef.current.tween then
+										pulseRef.current.tween:Cancel()
+									end
+									if pulseRef.current.gui then
+										pulseRef.current.gui:Destroy()
+									end
+									pulseRef.current = nil
+								end
 								setTutorialMessage("Looking for your Cauldron...")
 							end
 							continue
@@ -463,11 +549,36 @@ local function TutorialV2(props: TutorialProps)
 				if activePanel == "shop" then
 					if currentActionRef.current ~= "shop_ui_open" then
 						currentActionRef.current = "shop_ui_open"
-						-- Don't cleanup beam - keep it pointing to shop
+						-- Cleanup beam and pulse overlay
+						if pulseRef.current then
+							if pulseRef.current.tween then
+								pulseRef.current.tween:Cancel()
+							end
+							if pulseRef.current.gui then
+								pulseRef.current.gui:Destroy()
+							end
+							pulseRef.current = nil
+						end
 						setHighlightTarget("daybloom")
 						setTutorialMessage("🌻 Buy a Daybloom to get started!")
 						if props.onHighlightChange then
 							props.onHighlightChange("shop_item", "daybloom")
+						end
+
+						-- Pulse daybloom card background
+						if tutorialRefs.daybloomCard then
+							task.spawn(function()
+								local originalColor = tutorialRefs.daybloomCard.BackgroundColor3
+								local tweenInfo =
+									TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+								local tween = TweenService:Create(
+									tutorialRefs.daybloomCard,
+									tweenInfo,
+									{ BackgroundColor3 = Color3.fromRGB(100, 150, 100) }
+								)
+								tween:Play()
+								pulseRef.current = { tween = tween, originalColor = originalColor }
+							end)
 						end
 					end
 					continue
@@ -507,7 +618,17 @@ local function TutorialV2(props: TutorialProps)
 						cleanupBeam(beamRef.current)
 						beamRef.current = nil
 						beamRef.current = createBeam(hrp, nearestShop)
-						setTutorialMessage("🛒 Press [E] or click to open the Shop!")
+						if pulseRef.current then
+							if pulseRef.current.tween then
+								pulseRef.current.tween:Cancel()
+							end
+							if pulseRef.current.gui then
+								pulseRef.current.gui:Destroy()
+							end
+							pulseRef.current = nil
+						end
+
+						setTutorialMessage("🛒 Press [R] or click to open the Shop!")
 					end
 					continue
 				end
@@ -519,14 +640,64 @@ local function TutorialV2(props: TutorialProps)
 						cleanupBeam(beamRef.current)
 						beamRef.current = nil
 						beamRef.current = createBeam(hrp, nearestShop)
-						setTutorialMessage("Find the Shop")
+						setTutorialMessage("Find the Shop or use the Shop button")
+
+						-- Create pulsing overlay on ShopButton
+
+						local state = TutorialRefs:getState()
+						if state and state.shopButton and not pulseRef.current then
+							task.spawn(function()
+								local sg = Instance.new("ScreenGui")
+								sg.Name = "TutorialPulse"
+								sg.DisplayOrder = 1000
+								sg.Parent = player.PlayerGui
+
+								local img = Instance.new("ImageLabel")
+								local v2: Vector2 = tutorialRefs.shopButton.AbsoluteSize + Vector2.new(20, 20)
+								img.Size = UDim2.fromOffset(100, 100)
+								img.Position = UDim2.fromOffset(
+									tutorialRefs.shopButton.AbsolutePosition.X
+										+ tutorialRefs.shopButton.AbsoluteSize.X / 2,
+									tutorialRefs.shopButton.AbsolutePosition.Y + tutorialRefs.shopButton.AbsoluteSize.Y
+								)
+								img.BackgroundTransparency = 1
+								img.Image = "rbxassetid://12364133962"
+								img.ImageColor3 = Color3.fromRGB(255, 255, 255)
+								img.ImageTransparency = 0
+								img.Parent = sg
+								img.AnchorPoint = Vector2.new(0.5, 0)
+
+								local tweenInfo =
+									TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+								local tween = TweenService:Create(img, tweenInfo, {
+									ImageTransparency = 0.7,
+									Position = UDim2.fromOffset(
+										tutorialRefs.shopButton.AbsolutePosition.X
+											+ tutorialRefs.shopButton.AbsoluteSize.X / 2,
+										tutorialRefs.shopButton.AbsolutePosition.Y + 90
+									),
+								})
+								tween:Play()
+
+								pulseRef.current = { gui = sg, tween = tween }
+							end)
+						end
 					end
 				else
 					-- Shop not found yet, keep searching (reset action so next loop tries again)
 					currentActionRef.current = "searching_shop"
-					warn("cleanup beam")
 					cleanupBeam(beamRef.current)
 					beamRef.current = nil
+					-- Cleanup pulse overlay
+					if pulseRef.current then
+						if pulseRef.current.tween then
+							pulseRef.current.tween:Cancel()
+						end
+						if pulseRef.current.gui then
+							pulseRef.current.gui:Destroy()
+						end
+						pulseRef.current = nil
+					end
 					setTutorialMessage("Looking for the shop... Press [G] to open shop menu")
 				end
 			end
@@ -534,11 +705,24 @@ local function TutorialV2(props: TutorialProps)
 
 		return function()
 			running = false
-			warn("cleanup beam")
 			cleanupBeam(beamRef.current)
 			beamRef.current = nil
+			-- Cleanup pulse
+			if pulseRef.current then
+				if pulseRef.current.tween then
+					pulseRef.current.tween:Cancel()
+				end
+				if pulseRef.current.gui then
+					pulseRef.current.gui:Destroy()
+				end
+				if pulseRef.current.originalColor and tutorialRefs.daybloomCard then
+					tutorialRefs.daybloomCard.BackgroundColor3 = pulseRef.current.originalColor
+				end
+				pulseRef.current = nil
+			end
 		end
 	end, {
+		tutorialRefs,
 		props.PlayerData and props.PlayerData.Ingredients,
 		props.PlayerData and props.PlayerData.Cauldrons,
 		props.PlayerData and props.PlayerData.Potions,
