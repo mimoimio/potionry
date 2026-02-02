@@ -104,7 +104,7 @@ export const pricingTiers = [
             "Shop UI with transactions",
             "Round-based game loop",
             "State management with Reflex",
-            "React-powered UI components",
+            "Declarative React UI components",
             "5-10 days delivery"
         ],
         cta: "Get Started",
@@ -115,12 +115,12 @@ export const pricingTiers = [
         name: "Complex Architecture",
         price: "Let's Discuss",
         description: "Full-scale systems tailored to your game's unique needs",
-        badge: "Custom Quote",
+        // badge: "",
         badgeColor: "purple",
         features: [
             "Complete Tycoon core systems",
             "Pet systems with trading",
-            "Anti-cheat implementation",
+            // "Anti-cheat implementation",
             "Custom gameplay mechanics",
             "Scalable architecture design",
             "Timeline discussed in DM"
