@@ -676,7 +676,7 @@ function PotionService.initialize()
 										emitter.Drag = 1
 										emitter.RotSpeed = NumberRange.new(0)
 										emitter.Rotation = NumberRange.new(-15, 15)
-										table.insert(emitters)
+										table.insert(emitters, emitter)
 									end
 								end
 							end

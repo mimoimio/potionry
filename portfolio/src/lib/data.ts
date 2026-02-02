@@ -4,42 +4,48 @@ export const projects = [
     {
         id: 1,
         title: "Crafting System",
-        description: "A comprehensive crafting mechanic allowing players to combine items. Built with extensible recipe definitions.",
+        description: "A comprehensive crafting mechanic allowing players to combine ingredients. Built with procedural recipe definitions.",
         icon: Hammer,
-        tags: ["Roblox", "Lua", "Systems"],
-        status: "Completed"
+        tags: ["Crafting", "Procedural"],
+        status: "Completed",
+        // image: "/projects/craft.png", // Add your image path here
+        video: "/projects/craft.mp4", // Or use video instead
     },
     {
         id: 2,
-        title: "Modular Framework",
+        title: "State-Synchronized Architecture",
         description: "Robust architecture featuring Datastore and Bus systems for seamless server-client state synchronization.",
         icon: Database,
-        tags: ["Architecture", "Networking", "Data Sync"],
-        status: "Core"
+        tags: ["Architecture", "Networking", "Reflex"],
+        status: "Core",
+        video: "/projects/state.mp4",
     },
     {
         id: 3,
-        title: "Declarative React UI",
-        description: "Modern user interface implementation using React-Lua (Roact) for component-based UI development.",
+        title: "Inventory System",
+        description: "Declarative draggable inventory UI using React-Lua",
         icon: Layout,
-        tags: ["React", "UI/UX", "Roact"],
-        status: "Live"
+        tags: ["React", "UI/UX", "Reflex"],
+        status: "Completed",
+        video: "/projects/inventory.mp4",
     },
-    {
-        id: 4,
-        title: "Plot Assigner",
-        description: "Automated plot allocation system for tycoon or building games, handling ownership and serialization.",
-        icon: Map,
-        tags: ["Gameplay", "Tycoon", "Mgmt"],
-        status: "Completed"
-    },
+    // {
+    //     id: 4,
+    //     title: "Plot Assigner",
+    //     description: "Automated plot allocation system for tycoon or building games, handling ownership and serialization.",
+    //     icon: Map,
+    //     tags: ["Gameplay", "Tycoon", "Mgmt"],
+    //     status: "Completed",
+    //     image: "/projects/plot.png",
+    // },
     {
         id: 5,
         title: "Throwing Mechanic",
         description: "Physics-based projectile system with calculated trajectories and server-side validation.",
         icon: Move,
         tags: ["Physics", "Combat", "Math"],
-        status: "Prototype"
+        status: "Prototype",
+        video: "/projects/throw.mp4", // Example of using video
     }
 ];
 
