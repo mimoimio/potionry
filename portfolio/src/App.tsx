@@ -10,12 +10,12 @@ function App() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20">
       <Hero />
-      
+
       <main id="projects" className="py-20 container mx-auto px-4">
         <div className="text-center mb-16 space-y-4">
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Featured <span className="text-primary">Projects</span></h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-             A collection of my work demonstrating complex systems, UI architecture, and gameplay mechanics.
+            A collection of my work demonstrating complex systems, UI architecture, and gameplay mechanics.
           </p>
         </div>
 
@@ -36,7 +36,7 @@ function App() {
               I'm always open to discussing new projects, creative ideas or opportunities to be part of your visions.
             </p>
           </div>
-          
+
           <div className="flex gap-4">
             <Button variant="ghost" size="icon" className="rounded-full">
               <Github className="w-5 h-5" />
@@ -50,7 +50,7 @@ function App() {
           </div>
 
           <Separator className="w-1/2" />
-          
+
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Roblox Developer Portfolio. Built with React, Vite & Tailwind.
           </p>
