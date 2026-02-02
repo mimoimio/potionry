@@ -63,7 +63,7 @@ export const skillCategories = [
         ]
     },
     {
-        category: "Web & Backend",
+        category: "Web & Full Stack",
         description: "Leveraging professional web standards like the Model-View-Controller architecure to build optimized, state-managed architectures within Roblox.",
         skills: [
             { name: "React", icon: SiReact },
