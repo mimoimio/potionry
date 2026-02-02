@@ -1,4 +1,4 @@
-import { Hammer, Database, Layout, Move, Package, Zap, Code, Check } from 'lucide-react';
+import { Hammer, Database, Layout, Move, Package } from 'lucide-react';
 import { SiLua, SiReact, SiNextdotjs, SiLaravel, SiPython } from 'react-icons/si';
 
 export const projects = [
