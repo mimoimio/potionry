@@ -1,4 +1,5 @@
 import { Hammer, Database, Layout, Move, Code, Package, Zap } from 'lucide-react';
+import { SiLua, SiReact, SiNextdotjs, SiLaravel, SiPython } from 'react-icons/si';
 
 export const projects = [
     {
@@ -14,7 +15,7 @@ export const projects = [
     {
         id: 2,
         title: "State-Synchronized Architecture",
-        description: "Robust architecture featuring Datastore and Bus systems for seamless server-client state synchronization.",
+        description: "Robust architecture featuring Datastore and Bus Systems for seamless server-client state synchronization.",
         icon: Database,
         tags: ["Architecture", "Networking", "Reflex"],
         status: "Core",
@@ -43,18 +44,32 @@ export const projects = [
         title: "Throwing Mechanic",
         description: "Physics-based projectile system with calculated trajectories and server-side validation.",
         icon: Move,
-        tags: ["Physics", "Combat", "Math"],
+        tags: ["Physics"],
         status: "Prototype",
         video: "/projects/throw.mp4", // Example of using video
     }
 ];
 
-export const skills = [
-    { name: "Luau", icon: Code, level: "Expert" },
-    { name: "Rojo", icon: Package, level: "Advanced" },
-    { name: "React / Roact", icon: Layout, level: "Advanced" },
-    { name: "Wally", icon: Package, level: "Intermediate" },
-    { name: "TypeScript", icon: Code, level: "Intermediate" },
-    { name: "Data Stores", icon: Database, level: "Expert" },
-    { name: "Performance Optimization", icon: Zap, level: "Advanced" },
+export const skillCategories = [
+    {
+        category: "Core Stack",
+        description: "Foundation for building scalable Roblox experiences with modern architecture patterns.",
+        skills: [
+            { name: "Luau", icon: SiLua },
+            { name: "Services Architecture", icon: Package },
+            { name: "ProfileStore by loleris", icon: Database },
+            { name: "React-Lua", image: "/React-lua.png" },
+            { name: "Reflex", image: "/reflex.svg" },
+        ]
+    },
+    {
+        category: "Web & Backend",
+        description: "Leveraging professional web standards like the Model-View-Controller architecure to build optimized, state-managed architectures within Roblox.",
+        skills: [
+            { name: "React", icon: SiReact },
+            { name: "Next.js", icon: SiNextdotjs },
+            { name: "Laravel", icon: SiLaravel },
+            { name: "Python", icon: SiPython },
+        ]
+    }
 ];

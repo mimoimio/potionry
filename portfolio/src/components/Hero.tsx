@@ -6,7 +6,7 @@ export function Hero() {
     return (
         <section className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden bg-background">
             {/* Background Image */}
-            <div className="absolute inset-0 bg-[url(/bg.png)] bg-fixed bg-cover opacity-30" />
+            <div className="absolute inset-0 bg-[url(/bg.png)] bg-center bg-fixed bg-cover opacity-30" />
 
             {/* Animated Grid Background */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
@@ -86,10 +86,15 @@ export function Hero() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, delay: 0.25 }}
+                    className="flex flex-col justify-center items-center gap-8"
                 >
                     <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-muted/50 backdrop-blur-sm rounded-full border border-border/50">
                         <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        <span className="text-sm text-muted-foreground">1 year of scripting experience</span>
+                        <span className="text-sm text-muted-foreground">1 year of luau scripting</span>
+                    </div>
+                    <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-muted/50 backdrop-blur-sm rounded-full border border-border/50">
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                        <span className="text-sm text-muted-foreground">2 years of web dev</span>
                     </div>
                 </motion.div>
 
