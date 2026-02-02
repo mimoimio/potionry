@@ -1,8 +1,7 @@
 import { motion } from "framer-motion";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { ExternalLink, Github, Image as ImageIcon, type LucideIcon } from "lucide-react";
+import { Image as ImageIcon, type LucideIcon } from "lucide-react";
 
 interface ProjectProps {
     project: {

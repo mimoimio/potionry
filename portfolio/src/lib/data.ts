@@ -1,4 +1,4 @@
-import { Hammer, Database, Layout, Map, Move, Code, Package, Zap } from 'lucide-react';
+import { Hammer, Database, Layout, Move, Code, Package, Zap } from 'lucide-react';
 
 export const projects = [
     {

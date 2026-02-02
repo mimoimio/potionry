@@ -1,6 +1,5 @@
 import { Hero } from "./components/Hero";
 import { ShowcaseCard } from "./components/ShowcaseCard";
-import { Skills } from "./components/Skills";
 import { projects } from "./lib/data";
 import { Separator } from "./components/ui/separator";
 import { Button } from "./components/ui/button";
