@@ -1,4 +1,4 @@
-import { Hammer, Database, Layout, Move, Package } from 'lucide-react';
+import { Hammer, Database, Layout, Move, Package, Zap, Code, Check } from 'lucide-react';
 import { SiLua, SiReact, SiNextdotjs, SiLaravel, SiPython } from 'react-icons/si';
 
 export const projects = [
@@ -71,5 +71,61 @@ export const skillCategories = [
             { name: "Laravel", icon: SiLaravel },
             { name: "Python", icon: SiPython },
         ]
+    }
+];
+
+export const pricingTiers = [
+    {
+        id: 1,
+        name: "Small Systems",
+        price: "$30 - $50",
+        description: "Perfect for quick implementations with proven templates",
+        badge: "Fast Delivery",
+        badgeColor: "green",
+        features: [
+            "DataStore setup (ProfileStore)",
+            "Basic UI components",
+            "Simple leaderstats system",
+            "Template-based implementation",
+            "1-3 days delivery"
+        ],
+        cta: "Get Started",
+        popular: false
+    },
+    {
+        id: 2,
+        name: "Medium Systems",
+        price: "$60 - $120",
+        description: "Where React-Lua skills create glitch-free, polished experiences",
+        badge: "React Specialist",
+        badgeColor: "blue",
+        features: [
+            "Complete Inventory system",
+            "Shop UI with transactions",
+            "Round-based game loop",
+            "State management with Reflex",
+            "React-powered UI components",
+            "5-10 days delivery"
+        ],
+        cta: "Get Started",
+        // popular: true
+    },
+    {
+        id: 3,
+        name: "Complex Architecture",
+        price: "Let's Discuss",
+        description: "Full-scale systems tailored to your game's unique needs",
+        badge: "Custom Quote",
+        badgeColor: "purple",
+        features: [
+            "Complete Tycoon core systems",
+            "Pet systems with trading",
+            "Anti-cheat implementation",
+            "Custom gameplay mechanics",
+            "Scalable architecture design",
+            "Timeline discussed in DM"
+        ],
+        cta: "Contact Me",
+        popular: false
     }
 ];

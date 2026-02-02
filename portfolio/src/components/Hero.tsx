@@ -1,8 +1,30 @@
 import { motion } from "framer-motion";
 import { Button } from "./ui/button";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export function Hero() {
+    const [malaysiaTime, setMalaysiaTime] = useState("");
+
+    useEffect(() => {
+        const updateTime = () => {
+            const now = new Date();
+            const malaysiaTimeStr = now.toLocaleTimeString("en-US", {
+                timeZone: "Asia/Kuala_Lumpur",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+                second: "2-digit",
+            });
+            setMalaysiaTime(malaysiaTimeStr);
+        };
+
+        updateTime();
+        const interval = setInterval(updateTime, 1000);
+
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <section className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden bg-background">
             {/* Background Image */}
@@ -66,7 +88,7 @@ export function Hero() {
                 >
                     <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter relative">
                         <span className="bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-white/60">
-                            Mimoimio
+                            Mior's Portfolio
                         </span>
                         <div className="absolute -inset-4 bg-gradient-to-r from-primary/0 via-primary/30 to-primary/0 blur-2xl opacity-50" />
                     </h1>
@@ -86,8 +108,13 @@ export function Hero() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, delay: 0.25 }}
-                    className="flex flex-col justify-center items-center gap-8"
+                    className="flex flex-col justify-center items-center gap-3"
                 >
+                    <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-muted/50 backdrop-blur-sm rounded-full border border-border/50">
+                        <Clock className="w-4 h-4 text-primary" />
+                        <span className="text-sm text-muted-foreground">My time now: </span>
+                        <span className="text-md text-primary-foreground">{malaysiaTime} GMT+8</span>
+                    </div>
                     <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-muted/50 backdrop-blur-sm rounded-full border border-border/50">
                         <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                         <span className="text-sm text-muted-foreground">1 year of luau scripting</span>

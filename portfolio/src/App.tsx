@@ -1,5 +1,6 @@
 import { Hero } from "./components/Hero";
 import { Skills } from "./components/Skills";
+import { Pricing } from "./components/Pricing";
 import { ShowcaseCard } from "./components/ShowcaseCard";
 import { projects } from "./lib/data";
 import { Separator } from "./components/ui/separator";
@@ -65,6 +66,8 @@ function App() {
       </section>
 
       <Skills />
+
+      <Pricing />
 
       <footer id="contact" className="py-20 border-t bg-background">
         <div className="container mx-auto px-4 flex flex-col items-center text-center space-y-8">

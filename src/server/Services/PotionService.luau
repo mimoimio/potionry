@@ -1,12 +1,15 @@
---!strict
+-- Handles Potion manipulation related requests and potion throwing
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PlayerSessions = require(game.ReplicatedStorage.Shared.producers.PlayerSessions)
-local PotionConfigs = require(game.ReplicatedStorage.Shared.Configs.PotionConfigs)
 local CraftingModule = require(game.ReplicatedStorage.Shared.CraftingModule)
 local VariationRNGService = require(game.ServerScriptService.Server.Services.VariationRNGService)
 local PotionService = {}
 
+type PlayersState = PlayerSessions.PlayersState
+type PlayerEntity = PlayerSessions.PlayerEntity
+
 local sizes = { 1, 1, 1, 2, 2, 3 }
+
 -- Create RemoteFunction for crafting
 local GetIngredients = Instance.new("RemoteFunction", game.ReplicatedStorage.Shared.Events)
 GetIngredients.Name = "GetIngredients"
@@ -41,7 +44,7 @@ SkipCraft.Name = "SkipCraft"
 
 -- Generate a unique ID for potions
 local potionCounter = 0
-local function generatePotionUID(player: Player)
+local function generatePotionUID(player: Player): string
 	potionCounter += 1
 	local UID = ("%014X"):format(workspace:GetServerTimeNow() * 1e4)
 	UID = UID:sub(8, UID:len()) .. "_POTION_" .. potionCounter
@@ -49,13 +52,12 @@ local function generatePotionUID(player: Player)
 end
 
 local function getVariation(): string
-	local SpecialEventsService = require(game.ServerScriptService.Server.Services.SpecialEventsService)
 	local v = VariationRNGService:roll()
 	return v.VariationId
 end
 
-local function getPlayerSession(player: Player): PlayerSessions.PlayerEntity
-	return PlayerSessions:getState(function(state: PlayerSessions.PlayersState)
+local function getPlayerSession(player: Player): (state: PlayersState) -> PlayerEntity
+	return PlayerSessions:getState(function(state: PlayersState): PlayersState
 		return state.players[player]
 	end)
 end
@@ -175,18 +177,6 @@ function PotionService.SkipCraft(player: Player, cauldronId: string)
 	PlayerSessions.setCauldron(player, cauldronId, newCauldron)
 end
 
--- Legacy function kept for compatibility
-function PotionService.CraftPotionLegacy(player: Player, potionId: string): nil
-	local playerSession = getPlayerSession(player)
-	local potionConfig: PotionConfigs.PotionConfig? = PotionConfigs.Lookup[potionId]
-
-	if not (player and potionId and playerSession and potionConfig) then
-		return
-	end
-	if playerSession.Data.Cash >= potionConfig.Price then
-	end
-end
-
 function PotionService.PlacePotion(player: Player, rackId, slotNum): nil
 	local playerSession = getPlayerSession(player)
 	if not (player and slotNum and rackId and playerSession) then
@@ -214,7 +204,6 @@ end
 
 function PotionService.SetPotionSlot(player: Player, rackId: string, slotNum: string)
 	local playerSession = getPlayerSession(player)
-	warn("rackId", rackId)
 	if not (player and slotNum and rackId and playerSession) then
 		return
 	end
@@ -487,7 +476,7 @@ function PotionService.initialize()
 			local RunService = game:GetService("RunService")
 			local connection
 			local elapsedTime = 0
-			local maxTime = 10 -- Maximum 10 seconds of flight
+			local maxTime = 10 -- max flight time
 
 			-- Create trail for thrown potion
 			local mainPart = thrownModel.PrimaryPart or thrownModel:FindFirstChildWhichIsA("BasePart")
@@ -599,11 +588,6 @@ function PotionService.initialize()
 					if shattersound then
 						task.spawn(function()
 							sound = shattersound:Clone() :: Sound
-							-- sound.Volume = additionalSpeed / 50
-							-- sound.PlaybackSpeed = math.min(15, 1 / (additionalSpeed / 50))
-							-- sound.PlaybackRegionsEnabled = true
-							-- sound.RollOffMaxDistance = 10000 * additionalSpeed
-							-- sound.RollOffMinDistance = 10
 							sound.Parent = puddle
 							if not sound.IsLoaded then
 								sound.Loaded:Wait()
@@ -683,14 +667,13 @@ function PotionService.initialize()
 						end
 					end
 
-					-- trail.Parent = puddle
+					-- VFX for potion variation
 					task.delay(0.1, function()
 						shardEmitter:Emit(40)
 						bubbleEmitter:Emit(40)
 						for i, e in emitters do
 							e:Emit(40)
 						end
-						-- VFX for potion variation
 					end)
 					-- Destroy puddle after 5 seconds
 					task.delay(5, function()
