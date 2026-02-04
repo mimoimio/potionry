@@ -8,7 +8,7 @@ interface ProjectProps {
         id: number;
         title: string;
         description: string;
-        icon: LucideIcon;
+        icon: LucideIcon | any;
         tags: string[];
         status: string;
         image?: string;
@@ -29,7 +29,7 @@ export function ShowcaseCard({ project, index }: ProjectProps) {
         >
             <Card className="h-full flex flex-col hover:border-primary/50 transition-colors duration-300 overflow-hidden">
                 {/* Media Section */}
-                <div className="relative w-full h-48 overflow-hidden group">
+                <div className="relative w-full h-full overflow-hidden group">
                     {project.video ? (
                         // Video
                         <>

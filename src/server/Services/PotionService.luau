@@ -369,6 +369,10 @@ function PotionService.initialize()
 			end
 
 			-- Remove potion from player inventory
+			if not playerSession.Data.ThrownPotions[potion.PotionId] then
+				PlayerSessions.throwPotion(player, potion.PotionId)
+			end
+			
 			PlayerSessions.removePotion(player, potionUID)
 
 			-- Get potion model

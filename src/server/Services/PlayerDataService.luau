@@ -1,4 +1,4 @@
-local DATASTORENAME = "Player"
+local DATASTORENAME = "THROW_POTIONS"
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -18,14 +18,6 @@ export type PotionInstance = {
 }
 
 local Potions = {}
--- for i = 1, 200 do
--- 	table.insert(Potions, {
--- 		UID = "i" .. i,
--- 		PotionId = "daybloom",
--- 		VariationId = "none",
--- 		Size = math.random(1, 3),
--- 	})
--- end
 local PROFILE_TEMPLATE: PlayerSessions.Data = {
 	Cash = 50,
 	Cauldrons = {},

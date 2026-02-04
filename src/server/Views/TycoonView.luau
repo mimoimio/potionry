@@ -830,15 +830,17 @@ local Tycoon = function(props: TycoonProps)
 
 	useEffect(function()
 		isMountedRef.current = true
-		local plot = props.Plot
+		local plot = props.PlayerSession.Plot
 		local player = props.Player
 		if not plot or not player then
+			warn("NOT PLOT")
 			return
 		end
 
 		local ownerBoard = plot:FindFirstChild("CompletionBoard", true)
 		local CollectButton: Part = plot:FindFirstChild("CollectButton", true)
 		if not ownerBoard or not ownerBoard:IsA("Part") then
+			warn("NOT OWNERBOARD")
 			return
 		end
 
@@ -873,6 +875,7 @@ local Tycoon = function(props: TycoonProps)
 		local thumbType = Enum.ThumbnailType.HeadShot
 		local thumbSize = Enum.ThumbnailSize.Size420x420
 		local thumbUrl, _ = Players:GetUserThumbnailAsync(player.UserId, thumbType, thumbSize)
+		warn("Thumbnail", thumbUrl, imageLabel)
 		imageLabel.Image = thumbUrl
 
 		return function()
@@ -891,7 +894,10 @@ local Tycoon = function(props: TycoonProps)
 				warn("No textlabel")
 			end
 		end
-	end, { props.Plot, props.Player, HttpService:JSONEncode(playerSession.Data.Cauldrons) })
+	end, { props.PlayerSession.Plot, props.Player })
+	useEffect(function()
+		warn(props.PlayerSession.Plot, props.Player)
+	end, { props.PlayerSession.Plot, props.Player })
 
 	return e("Folder", {
 		Name = props.Player.Name .. "'s Tycoon",

@@ -119,6 +119,36 @@ local producer = Reflex.createProducer(initialState, {
 	end,
 
 	-- potion actions
+	throwPotion = function(state: PlayersState, player: Player, potionId)
+		local players = table.clone(state.players)
+		local entity = players[player]
+		if entity then
+			local newEntity = table.clone(entity)
+			local newData = table.clone(entity.Data)
+
+			local newThrownPotions = table.clone(entity.Data.ThrownPotions)
+			if not newThrownPotions[potionId] then
+				newThrownPotions[potionId] = true
+				local newMultipliers = table.clone(newData.Multipliers)
+
+				newMultipliers.throwBonus = {
+					DisplayName = "Thrown Bonus",
+					Expire = -1,
+					Value = (newMultipliers.throwBonus and newMultipliers.throwBonus.Value or 0) + 0.05,
+				}
+				newData.Multipliers = newMultipliers
+				newData.ThrownPotions = newThrownPotions
+			end
+
+			newEntity.Data = newData
+			players[player] = newEntity
+		end
+		return {
+			players = players,
+			currentSeed = state.currentSeed,
+		}
+	end,
+	-- potion actions
 	addPotion = function(state: PlayersState, player: Player, potion: {})
 		local players = table.clone(state.players)
 		local entity = players[player]
