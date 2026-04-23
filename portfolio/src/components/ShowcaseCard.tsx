@@ -74,9 +74,9 @@ export function ShowcaseCard({ project, index }: ProjectProps) {
                     )}
                 </div>
 
-                <CardHeader>
+                <CardHeader className=" p-2 md:p-4">
                     <div className="flex justify-between items-start">
-                        <CardTitle className="text-xl">{project.title}</CardTitle>
+                        <CardTitle className="text-sm lg:text-xl ">{project.title}</CardTitle>
                         <Badge variant="outline" className={
                             project.status === "Completed" ? "bg-green-500/10 text-green-500 border-green-500/20" :
                                 project.status === "Core" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
@@ -85,11 +85,11 @@ export function ShowcaseCard({ project, index }: ProjectProps) {
                             {project.status}
                         </Badge>
                     </div>
-                    <CardDescription className="line-clamp-2">
+                    <CardDescription className="line-clamp-2 text-xs lg:text-md">
                         {project.description}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow">
+                <CardContent className="p-2 md:p-4 grow">
                     <div className="flex flex-wrap gap-2">
                         {project.tags.map(tag => (
                             <Badge key={tag} variant="secondary">

@@ -19,7 +19,7 @@ function App() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-6 lg:max-w-6xl mx-auto">
           {projects.map((project, index) => (
             <ShowcaseCard key={project.id} project={project} index={index} />
           ))}
@@ -34,7 +34,8 @@ function App() {
           </p>
         </div>
 
-        <div className="max-w-2xl mx-auto">
+        {/* <div className="max-w-sm mx-auto"> */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto">
           <a
             href="https://www.roblox.com/games/100208898672356/THROW-POTIONS-n-GET-RICH"
             target="_blank"
@@ -43,11 +44,12 @@ function App() {
           >
             <div className="border rounded-lg overflow-hidden bg-card hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                <div className="text-6xl">                            <img
-                  src={'projects/thumbnail.png'}
-                  alt={'throw potions'}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+                <div className="text-6xl">
+                  <img
+                    src={'projects/thumbnail.png'}
+                    alt={'throw potions'}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
                 </div>
               </div>
               <div className="p-6 space-y-3">
@@ -58,6 +60,34 @@ function App() {
                 <div className="flex gap-2 flex-wrap">
                   <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary">Casual</span>
                   <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary">Tycoon</span>
+                </div>
+              </div>
+            </div>
+          </a>
+          <a
+            href="https://www.roblox.com/games/104754083898997/Coffee-Tavern"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block group"
+          >
+            <div className="border rounded-lg overflow-hidden bg-card hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                <div className="text-6xl">
+                  <img
+                    src={'projects/thumbnail2.png'}
+                    alt={'throw potions'}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+              </div>
+              <div className="p-6 space-y-3">
+                <h3 className="text-2xl font-bold group-hover:text-primary transition-colors">Coffee Tavern</h3>
+                <p className="text-muted-foreground">
+                  A Cozy Coffee Cafe Barista Simulator in a tavern settings
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary">Casual</span>
+                  <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary">Coffee</span>
                 </div>
               </div>
             </div>
